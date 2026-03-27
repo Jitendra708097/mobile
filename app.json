@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#f8f9fa"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.attendease.app",
@@ -37,7 +39,11 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -46,7 +52,9 @@
       "expo-secure-store",
       [
         "expo-camera",
-        { "cameraPermission": "Allow AttendEase to access your camera." }
+        {
+          "cameraPermission": "Allow AttendEase to access your camera."
+        }
       ],
       [
         "expo-location",
@@ -68,9 +76,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_UUID"
-      },
-      "apiUrl": "https://api.attendease.com"
-    }
+        "projectId": "5cb50616-0be4-4d3b-8204-5679a3fe0ac5"
+      }
+    },
+    "owner": "jitendra7080"
   }
 }

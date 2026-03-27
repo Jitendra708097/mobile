@@ -8,9 +8,7 @@
  */
 
 import React, { useEffect } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,
-} from 'react-native';
+import {  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import useNotificationStore from '../../store/notificationStore.js';
@@ -21,18 +19,18 @@ import { spacing }   from '../../theme/spacing.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
 import { NOTIFICATION_TYPES } from '../../utils/constants.js';
 
-const TYPE_ICONS = {
-  leave_approved:            '✅',
-  leave_rejected:            '❌',
-  regularisation_approved:   '✅',
-  regularisation_rejected:   '❌',
-  checkin_reminder:          '⏰',
-  checkout_reminder:         '⏰',
-  general:                   '📢',
-};
+// const TYPE_ICONS = {
+//   leave_approved:            '✅',
+//   leave_rejected:            '❌',
+//   regularisation_approved:   '✅',
+//   regularisation_rejected:   '❌',
+//   checkin_reminder:          '⏰',
+//   checkout_reminder:         '⏰',
+//   general:                   '📢',
+// };
 
 const NotificationItem = ({ item, onPress }) => {
-  const icon = TYPE_ICONS[item.type] || '📢';
+  const icon = NOTIFICATION_TYPES[item.type] || '📢';
 
   return (
     <TouchableOpacity
