@@ -1,223 +1,174 @@
-/**
- * @module attendanceStore
- * @description Zustand store for all attendance state and actions.
- *
- *   Button state machine:
- *     CHECK_IN    → green, ready to check in
- *     CHECKED_IN  → red,   session open, can check out
- *     COOLDOWN    → grey,  wait for cooldown to expire
- *     CAP_REACHED → grey,  max sessions hit, done for today
- *
- *   Critical rule: syncWithServer() is called on every HomeScreen focus,
- *   not just mount. This keeps state accurate after crash/restart/background.
- *
- *   Offline queue management is delegated entirely to offlineQueueStore —
- *   attendanceStore only adds records to the queue and triggers sync.
- *
- *   NOTE: react-native-get-random-values is imported once in App.js (must be
- *   first import there). Do NOT import it again here — duplicate initialisation
- *   causes errors on some bundler configurations.
- *
- *   Called by: HomeScreen, LivenessChallenge, ConfirmCheckoutSheet,
- *              UndoCheckoutBar, useSyncOnFocus hook.
- */
-
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
-import api from '../api/axiosInstance.js';
 import { parseError } from '../utils/errorParser.js';
-import { BUTTON_STATES, API_ROUTES, SESSION } from '../utils/constants.js';
+import { BUTTON_STATES, SESSION } from '../utils/constants.js';
+import { getDeviceId } from '../services/deviceService.js';
 import {
-  appendToOfflineQueue,
-} from '../services/offlineService.js';
+  requestAttendanceChallenge,
+  getTodayAttendanceStatus,
+  checkInRequest,
+  checkOutRequest,
+  undoCheckoutRequest,
+} from '../services/attendanceService.js';
 
 const useAttendanceStore = create((set, get) => ({
-  // ─── State ─────────────────────────────────────────────────────────────────
-  buttonState:      BUTTON_STATES.CHECK_IN,
-  openSession:      null,
-  cooldownEndsAt:   null,
-  lastCheckout:     null,
-  lastCheckoutId:   null,
-  todayStatus:      null,
-  totalWorkedMins:  0,
-  sessionsToday:    0,
+  buttonState: BUTTON_STATES.CHECK_IN,
+  openSession: null,
+  cooldownEndsAt: null,
+  lastCheckout: null,
+  lastCheckoutId: null,
+  todayStatus: null,
+  totalWorkedMins: 0,
+  sessionsToday: 0,
   firstCheckInTime: null,
-  shiftInfo:        null,
-  isLoading:        false,
-  isSyncing:        false,
-  error:            null,
-  offlineQueue:     [],
+  shiftInfo: null,
+  isLoading: false,
+  isSyncing: false,
+  error: null,
+  offlineQueue: [],
 
-  // ─── Sync button state from server ─────────────────────────────────────────
   syncWithServer: async () => {
-    if (get().isSyncing) return;
+    if (get().isSyncing) {
+      return;
+    }
+
     set({ isSyncing: true, error: null });
 
     try {
-      const res  = await api.get(API_ROUTES.ATTENDANCE_STATUS);
-      const data = res.data.data;
+      const data = await getTodayAttendanceStatus();
 
       let buttonState = BUTTON_STATES.CHECK_IN;
-      if (data.openSession)
+      if (data.openSession) {
         buttonState = BUTTON_STATES.CHECKED_IN;
-      else if (data.cooldownEndsAt && new Date(data.cooldownEndsAt) > new Date())
+      } else if (data.cooldownEndsAt && new Date(data.cooldownEndsAt) > new Date()) {
         buttonState = BUTTON_STATES.COOLDOWN;
-      else if (data.sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY)
+      } else if (data.sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY) {
         buttonState = BUTTON_STATES.CAP_REACHED;
+      }
 
       set({
         buttonState,
-        openSession:      data.openSession      || null,
-        cooldownEndsAt:   data.cooldownEndsAt   || null,
-        lastCheckout:     data.lastCheckout     || null,
-        lastCheckoutId:   data.lastCheckoutId   || null,
-        todayStatus:      data.todayStatus      || null,
-        totalWorkedMins:  data.totalWorkedMins  || 0,
-        sessionsToday:    data.sessionsToday    || 0,
+        openSession: data.openSession || null,
+        cooldownEndsAt: data.cooldownEndsAt || null,
+        lastCheckout: data.lastCheckout || null,
+        lastCheckoutId: data.lastCheckoutId || null,
+        todayStatus: data.todayStatus || null,
+        totalWorkedMins: data.totalWorkedMins || 0,
+        sessionsToday: data.sessionsToday || 0,
         firstCheckInTime: data.firstCheckInTime || null,
-        shiftInfo:        data.shiftInfo        || null,
-        isSyncing:        false,
+        shiftInfo: data.shiftInfo || null,
+        isSyncing: false,
       });
-    } catch (err) {
-      set({ isSyncing: false, error: parseError(err) });
+    } catch (error) {
+      set({ isSyncing: false, error: parseError(error) });
     }
   },
 
-  // ─── Check-in ───────────────────────────────────────────────────────────────
   checkIn: async ({ selfieBase64, location, challengeToken, isOnline }) => {
     set({ isLoading: true, error: null });
 
-    // ── Offline path ──────────────────────────────────────────────────────────
     if (!isOnline) {
-      const record = {
-        clientRecordId: uuidv4(),
-        type:           'checkin',
-        latitude:       location.latitude,
-        longitude:      location.longitude,
-        accuracy:       location.accuracy,
-        capturedAt:     Date.now(),
-        selfieBase64,
-        challengeToken: null,
-        isOffline:      true,
-      };
-
-      const updated = await appendToOfflineQueue(record);
-
-      set({
-        buttonState:  BUTTON_STATES.CHECKED_IN,
-        openSession:  { isOffline: true, checkInTime: new Date().toISOString() },
-        offlineQueue: updated,
-        isLoading:    false,
-      });
-
-      return { success: true, offline: true };
+      const message = 'Internet connection is required for secure attendance check-in.';
+      set({ isLoading: false, error: message });
+      return { success: false, error: message };
     }
 
-    // ── Online path ───────────────────────────────────────────────────────────
     try {
-      const res = await api.post(API_ROUTES.CHECKIN, {
-        selfieBase64,
-        latitude:         location.latitude,
-        longitude:        location.longitude,
-        accuracy:         location.accuracy,
-        altitude:         location.altitude,
+      const deviceId = await getDeviceId();
+      const data = await checkInRequest({
         challengeToken,
-        captureTimestamp: Date.now(),
+        captureTimestamp: location.timestamp || Date.now(),
+        deviceId,
+        selfieBase64,
+        faceEmbedding: null,
+        lat: location.latitude,
+        lng: location.longitude,
+        accuracy: location.accuracy,
+        altitude: location.altitude,
+        speed: location.speed,
+        isMocked: Boolean(location.isMocked),
       });
-
-      const { session } = res.data.data;
 
       set({
-        buttonState:   BUTTON_STATES.CHECKED_IN,
-        openSession:   session,
+        buttonState: BUTTON_STATES.CHECKED_IN,
+        openSession: data.session,
         sessionsToday: get().sessionsToday + 1,
-        isLoading:     false,
-        error:         null,
+        isLoading: false,
+        error: null,
       });
 
-      return { success: true };
-    } catch (err) {
-      const message = parseError(err);
+      return { success: true, data };
+    } catch (error) {
+      const message = parseError(error);
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
   },
 
-  // ─── Check-out ──────────────────────────────────────────────────────────────
   checkOut: async (isFinalCheckout = false) => {
     set({ isLoading: true, error: null });
 
     try {
-      const res = await api.post(API_ROUTES.CHECKOUT, { isFinalCheckout });
-      const { session, totalWorkedMins, cooldownEndsAt } = res.data.data;
+      const data = await checkOutRequest({ isFinalCheckout });
+      const newButtonState =
+        isFinalCheckout || get().sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY - 1
+          ? BUTTON_STATES.CAP_REACHED
+          : BUTTON_STATES.COOLDOWN;
 
-      let newButtonState;
-      if (isFinalCheckout || get().sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY - 1) {
-        newButtonState = BUTTON_STATES.CAP_REACHED;
-      } else {
-        newButtonState = BUTTON_STATES.COOLDOWN;
-      }
-
-      const undoWindowEndsAt = new Date(
-        Date.now() + SESSION.UNDO_WINDOW_MINUTES * 60000
-      ).toISOString();
+      const undoWindowEndsAt = new Date(Date.now() + SESSION.UNDO_WINDOW_MINUTES * 60000).toISOString();
 
       set({
-        buttonState:     newButtonState,
-        openSession:     null,
-        cooldownEndsAt:  cooldownEndsAt || null,
-        lastCheckout:    undoWindowEndsAt,
-        lastCheckoutId:  session.id,
-        totalWorkedMins: totalWorkedMins || 0,
-        isLoading:       false,
-        error:           null,
+        buttonState: newButtonState,
+        openSession: null,
+        cooldownEndsAt: data.cooldownEndsAt || null,
+        lastCheckout: undoWindowEndsAt,
+        lastCheckoutId: data.session.id,
+        totalWorkedMins: data.totalWorkedMins || 0,
+        isLoading: false,
+        error: null,
       });
 
-      return { success: true, session };
-    } catch (err) {
-      const message = parseError(err);
+      return { success: true, session: data.session };
+    } catch (error) {
+      const message = parseError(error);
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
   },
 
-  // ─── Undo Checkout ──────────────────────────────────────────────────────────
   undoCheckout: async () => {
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(API_ROUTES.CHECKOUT_UNDO);
+      const data = await undoCheckoutRequest();
 
       set({
-        buttonState:    BUTTON_STATES.CHECKED_IN,
-        openSession:    { checkInTime: get().openSession?.checkInTime },
-        lastCheckout:   null,
+        buttonState: BUTTON_STATES.CHECKED_IN,
+        openSession: data.session,
+        lastCheckout: null,
         lastCheckoutId: null,
-        isLoading:      false,
-        error:          null,
+        isLoading: false,
+        error: null,
       });
 
       return { success: true };
-    } catch (err) {
-      const message = parseError(err);
+    } catch (error) {
+      const message = parseError(error);
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
   },
 
-  // ─── Request Check-in (get challenge token) ─────────────────────────────────
   requestCheckIn: async () => {
     try {
-      const res = await api.post(API_ROUTES.REQUEST_CHECKIN);
-      return { success: true, data: res.data.data };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+      const data = await requestAttendanceChallenge();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: parseError(error) };
     }
   },
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
   clearError: () => set({ error: null }),
-  setLoading: (val) => set({ isLoading: val }),
+  setLoading: (value) => set({ isLoading: value }),
 }));
 
 export default useAttendanceStore;

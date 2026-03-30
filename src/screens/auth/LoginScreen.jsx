@@ -87,7 +87,7 @@ const LoginScreen = ({ navigation }) => {
             {storeErr && <ErrorMessage message={storeErr} />}
 
             <AppInput
-              label="Work Email"
+              label="Employee Email"
               value={email}
               onChangeText={(v) => { setEmail(v); setErrors((p) => ({ ...p, email: '' })); }}
               placeholder="you@company.com"

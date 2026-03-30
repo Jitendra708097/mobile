@@ -6,7 +6,6 @@
  *              Called by: AppNavigator when isAuthenticated === false.
  */
 
-import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import LoginScreen       from '../screens/auth/LoginScreen.jsx';

@@ -1,150 +1,200 @@
-/**
- * @module authStore
- * @description Zustand store for authentication state.
- *              Handles login, logout, token persistence in SecureStore,
- *              first login detection, and face enrollment status.
- *              Access token: 15 min expiry (refreshed by axiosInstance).
- *              Refresh token: rotated on every use.
- *              Called by: AppNavigator, LoginScreen, all screens via auth guard.
- */
-
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import api from '../api/axiosInstance.js';
 import { parseError } from '../utils/errorParser.js';
 import { getDevicePayload } from '../services/deviceService.js';
-import { STORAGE_KEYS, API_ROUTES } from '../utils/constants.js';
+import { STORAGE_KEYS } from '../utils/constants.js';
+import {
+  loginRequest,
+  logoutRequest,
+  changePasswordRequest,
+} from '../services/authService.js';
 
 const useAuthStore = create((set, get) => ({
-  // ─── State ─────────────────────────────────────────────────────────────────
+  employee: null,
+  user: null,
+  accessToken: null,
+  refreshToken: null,
   isAuthenticated: false,
-  isLoading:       true,   // true during boot token check
-  user:            null,   // { id, name, email, orgId, role, faceEnrolled, isFirstLogin }
-  error:           null,
+  isLoading: true,
+  pendingPassword: null,
+  error: null,
 
-  // ─── Hydrate from SecureStore on app boot ───────────────────────────────────
   hydrate: async () => {
     try {
-      const token    = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      const accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       const userData = await SecureStore.getItemAsync(STORAGE_KEYS.USER_DATA);
 
-      if (token && userData) {
+      if (accessToken && refreshToken && userData) {
         set({
+          employee: JSON.parse(userData),
+          user: JSON.parse(userData),
+          accessToken,
+          refreshToken,
           isAuthenticated: true,
-          user:            JSON.parse(userData),
-          isLoading:       false,
+          isLoading: false,
         });
-      } else {
-        set({ isAuthenticated: false, isLoading: false });
+        return;
       }
-    } catch {
-      set({ isAuthenticated: false, isLoading: false });
+    } catch (error) {
+      // fall through to clear state
     }
+
+    set({
+      employee: null,
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
   },
 
-  // ─── Login ──────────────────────────────────────────────────────────────────
-  login: async (email, password) => {
+  login: async (email, password, deviceIdOverride) => {
     set({ isLoading: true, error: null });
 
     try {
       const devicePayload = await getDevicePayload();
-
-      const res = await api.post(API_ROUTES.LOGIN, {
-        email:    email.trim().toLowerCase(),
+      const data = await loginRequest({
+        email: String(email).trim().toLowerCase(),
         password,
-        ...devicePayload,
+        deviceId: deviceIdOverride || devicePayload.deviceId,
       });
 
-      const { accessToken, refreshToken, employee } = res.data.data;
-
-      // Persist tokens in SecureStore — never AsyncStorage
-      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN,  accessToken);
-      await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA,     JSON.stringify(employee));
+      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
+      await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(data.employee));
 
       set({
+        employee: data.employee,
+        user: data.employee,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         isAuthenticated: true,
-        user:            employee,
-        isLoading:       false,
-        error:           null,
+        isLoading: false,
+        pendingPassword: password,
       });
 
-      return { success: true, employee };
-    } catch (err) {
-      const message = parseError(err);
-      set({ isLoading: false, error: message });
+      return { success: true, employee: data.employee };
+    } catch (error) {
+      const message = parseError(error);
+      set({ error: message, isLoading: false });
       return { success: false, error: message };
     }
   },
 
-  // ─── Set Password (first login) ─────────────────────────────────────────────
   setPassword: async (newPassword) => {
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(API_ROUTES.SET_PASSWORD, { newPassword });
+      const data = await changePasswordRequest({
+        currentPassword: get().pendingPassword,
+        newPassword,
+      });
+      const updatedEmployee = {
+        ...get().employee,
+        ...data,
+        isFirstLogin: false,
+        requiresPasswordChange: false,
+      };
 
-      // Update local user — no longer first login
-      const updatedUser = { ...get().user, isFirstLogin: false };
-      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
 
-      set({ user: updatedUser, isLoading: false });
+      set({
+        employee: updatedEmployee,
+        user: updatedEmployee,
+        pendingPassword: null,
+        isLoading: false,
+      });
+
       return { success: true };
-    } catch (err) {
-      const message = parseError(err);
-      set({ isLoading: false, error: message });
+    } catch (error) {
+      const message = parseError(error);
+      set({ error: message, isLoading: false });
       return { success: false, error: message };
     }
   },
 
-  // ─── Mark face as enrolled locally ─────────────────────────────────────────
-  markFaceEnrolled: async () => {
-    const updatedUser = { ...get().user, faceEnrolled: true };
-    await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
-    set({ user: updatedUser });
-  },
-
-  // ─── Change Password ────────────────────────────────────────────────────────
   changePassword: async (currentPassword, newPassword) => {
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(API_ROUTES.CHANGE_PASSWORD, { currentPassword, newPassword });
-      set({ isLoading: false });
+      const data = await changePasswordRequest({ currentPassword, newPassword });
+      const updatedEmployee = {
+        ...get().employee,
+        ...data,
+        isFirstLogin: false,
+        requiresPasswordChange: false,
+      };
+
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
+
+      set({
+        employee: updatedEmployee,
+        user: updatedEmployee,
+        isLoading: false,
+      });
+
       return { success: true };
-    } catch (err) {
-      const message = parseError(err);
-      set({ isLoading: false, error: message });
+    } catch (error) {
+      const message = parseError(error);
+      set({ error: message, isLoading: false });
       return { success: false, error: message };
     }
   },
 
-  // ─── Logout ─────────────────────────────────────────────────────────────────
+  markFaceEnrolled: async () => {
+    const updatedEmployee = {
+      ...get().employee,
+      faceEnrolled: true,
+    };
+
+    await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
+    set({ employee: updatedEmployee, user: updatedEmployee });
+  },
+
   logout: async () => {
     try {
       const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+
       if (refreshToken) {
-        // Best-effort — don't block logout on API failure
-        await api.post(API_ROUTES.LOGOUT, { refreshToken }).catch(() => {});
+        await logoutRequest(refreshToken).catch(() => {});
       }
     } finally {
-      // Always clear local state and tokens
       await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
 
       set({
+        employee: null,
+        user: null,
+        accessToken: null,
+        refreshToken: null,
         isAuthenticated: false,
-        user:            null,
-        error:           null,
-        isLoading:       false,
+        isLoading: false,
+        pendingPassword: null,
+        error: null,
       });
     }
   },
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
+  clearAuth: async () => {
+    await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+    await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+    await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
+
+    set({
+      employee: null,
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      pendingPassword: null,
+      error: null,
+    });
+  },
+
   clearError: () => set({ error: null }),
-  setError:   (msg) => set({ error: msg }),
 }));
 
 export default useAuthStore;

@@ -1,16 +1,6 @@
-/**
- * @module axiosInstance
- * @description Axios instance for all AttendEase API calls.
- *              Base URL: /api/v1/
- *              Request interceptor: attaches Bearer token from SecureStore.
- *              Response interceptor: silently refreshes token on 401,
- *              then retries original request once.
- *              On refresh failure: calls authStore.logout() → Login screen.
- *              Called by: all store actions, all services making API calls.
- */
-
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { STORAGE_KEYS } from '../utils/constants.js';
 
 const BASE_URL = 'https://api.attendease.com/api/v1';
 
@@ -22,19 +12,16 @@ const api = axios.create({
   },
 });
 
-// ─── Request Interceptor — Attach Access Token ───────────────────────────────
-api.interceptors.request.use(
-  async (config) => {
-    const token = await SecureStore.getItemAsync('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use(async (config) => {
+  const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
 
-// ─── Response Interceptor — Refresh on 401 ───────────────────────────────────
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -44,21 +31,23 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
+        const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
 
-        const res = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefresh } = res.data.data;
+        if (!refreshToken) {
+          throw error;
+        }
 
-        await SecureStore.setItemAsync('accessToken', accessToken);
-        await SecureStore.setItemAsync('refreshToken', newRefresh);
+        const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
+        const { accessToken, refreshToken: rotatedRefreshToken } = refreshResponse.data.data;
+
+        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+        await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, rotatedRefreshToken);
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
-      } catch (_refreshError) {
-        // Lazy import to avoid circular dependency
+      } catch (refreshError) {
         const { default: useAuthStore } = await import('../store/authStore.js');
-        useAuthStore.getState().logout();
+        await useAuthStore.getState().clearAuth();
         return Promise.reject(error);
       }
     }
