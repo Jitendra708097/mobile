@@ -7,9 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-} from 'react-native';
+import {  View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';

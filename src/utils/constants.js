@@ -66,17 +66,17 @@ export const REGULARISATION_TYPE_LABELS = {
 
 // ─── Evidence Types ──────────────────────────────────────────────────────────
 export const EVIDENCE_TYPES = {
-  MANAGER_CONFIRMATION: 'manager_confirmation',
-  EMAIL:                'email',
-  PHOTO:                'photo',
-  OTHER:                'other',
+  EMAIL:    'email',
+  PHOTO:    'photo',
+  DOCUMENT: 'document',
+  OTHER:    'other',
 };
 
 export const EVIDENCE_TYPE_LABELS = {
-  manager_confirmation: 'Manager Confirmation',
-  email:                'Email Proof',
-  photo:                'Photo Evidence',
-  other:                'Other',
+  email:    'Email Proof',
+  photo:    'Photo Evidence',
+  document: 'Document',
+  other:    'Other',
 };
 
 // ─── Notification Types ──────────────────────────────────────────────────────
@@ -148,11 +148,14 @@ export const API_ROUTES = {
   ATTENDANCE_STATUS:  '/attendance/today',
   ATTENDANCE_HISTORY: '/attendance/history',
   LEAVE_BALANCE:      '/leave/balance',
-  LEAVE_APPLY:        '/leave/apply',
-  LEAVE_HISTORY:      '/leave/history',
-  LEAVE_CANCEL:       '/leave/:id/cancel',
+  LEAVE_APPLY:        '/leave',
+  LEAVE_HISTORY:      '/leave',
+  LEAVE_CANCEL:       '/leave/:id',
   NOTIFICATIONS:      '/notifications',
-  NOTIFICATIONS_READ: '/notifications/mark-read',
+  NOTIFICATIONS_READ: '/notifications/read',
+  NOTIFICATIONS_READ_ALL: '/notifications/read-all',
+  NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count',
+  NOTIFICATIONS_REGISTER_TOKEN: '/notifications/register-token',
   PROFILE:            '/employees/profile',
   CHANGE_PASSWORD:    '/auth/change-password',
   REGISTER_DEVICE:    '/auth/register-device',

@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRef } from 'react';
 
-import api        from '../../api/axiosInstance.js';
 import AppButton  from '../../components/common/AppButton.jsx';
 import AppInput   from '../../components/common/AppInput.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
@@ -27,9 +26,9 @@ import { spacing }   from '../../theme/spacing.js';
 import {
   LEAVE_TYPES,
   LEAVE_TYPE_LABELS,
-  API_ROUTES,
 } from '../../utils/constants.js';
 import { formatDateRange, formatDate, countWorkingDays } from '../../utils/formatters.js';
+import { applyLeave, cancelLeave, getLeaveBalance, getLeaveHistory } from '../../services/leaveService.js';
 
 // ── Leave Balance Card ───────────────────────────────────────────────────────
 const BalanceCard = ({ type, balance }) => {
@@ -125,16 +124,16 @@ const LeaveScreen = () => {
 
   const fetchBalance = async () => {
     try {
-      const res = await api.get(API_ROUTES.LEAVE_BALANCE);
-      setBalances(res.data.data);
+      const data = await getLeaveBalance();
+      setBalances(data);
     } catch { setBalances({}); }
   };
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await api.get(API_ROUTES.LEAVE_HISTORY, { params: { limit: 20 } });
-      setHistory(res.data.data.requests || []);
+      const data = await getLeaveHistory({ limit: 20 });
+      setHistory(data.requests || []);
     } catch { setHistory([]); }
     finally { setLoading(false); }
   };
@@ -144,9 +143,7 @@ const LeaveScreen = () => {
     if (!reason.trim())       { setError('Reason is required.'); return; }
     setError(''); setLoading(true);
     try {
-      await api.post(API_ROUTES.LEAVE_APPLY, {
-        leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay,
-      });
+      await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay });
       setSuccess('Leave request submitted successfully! ✅');
       setReason(''); setFromDate(''); setToDate('');
       fetchBalance(); fetchHistory();
@@ -158,7 +155,7 @@ const LeaveScreen = () => {
 
   const handleCancel = async (id) => {
     try {
-      await api.post(`/leave/${id}/cancel`);
+      await cancelLeave(id);
       fetchHistory();
     } catch { /* non-critical */ }
   };

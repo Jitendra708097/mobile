@@ -16,15 +16,15 @@ import {
 } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
-import api         from '../../api/axiosInstance.js';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import AppButton   from '../../components/common/AppButton.jsx';
 import { EmptyState } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import { LEAVE_TYPE_LABELS, API_ROUTES } from '../../utils/constants.js';
+import { LEAVE_TYPE_LABELS } from '../../utils/constants.js';
 import { formatDateRange } from '../../utils/formatters.js';
+import { cancelLeave, getLeaveHistory } from '../../services/leaveService.js';
 
 /**
  * @param {object}   props
@@ -46,10 +46,8 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
     if (isLoading) return;
     setLoading(true);
     try {
-      const res = await api.get(API_ROUTES.LEAVE_HISTORY, {
-        params: { page: pageNum, limit: 15 },
-      });
-      const { requests: newItems, hasMore: more } = res.data.data;
+      const data = await getLeaveHistory({ page: pageNum, limit: 15 });
+      const { requests: newItems, hasMore: more } = data;
       setRequests((prev) => reset ? newItems : [...prev, ...newItems]);
       setHasMore(more);
       setPage(pageNum + 1);
@@ -69,7 +67,7 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
     if (!cancelId) return;
     setCancelling(true);
     try {
-      await api.post(`/leave/${cancelId}/cancel`);
+      await cancelLeave(cancelId);
       setRequests((prev) => prev.filter((r) => r.id !== cancelId));
       onRefreshBalance?.();
     } catch {

@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
-import api       from '../../api/axiosInstance.js';
 import AppInput  from '../../components/common/AppInput.jsx';
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -23,9 +22,9 @@ import { spacing }   from '../../theme/spacing.js';
 import {
   LEAVE_TYPES,
   LEAVE_TYPE_LABELS,
-  API_ROUTES,
 } from '../../utils/constants.js';
 import { countWorkingDays } from '../../utils/formatters.js';
+import { applyLeave } from '../../services/leaveService.js';
 
 const TypePill = ({ label, selected, onPress }) => (
   <TouchableOpacity
@@ -79,7 +78,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
 
     setLoading(true);
     try {
-      await api.post(API_ROUTES.LEAVE_APPLY, {
+      await applyLeave({
         leaveType,
         fromDate,
         toDate,

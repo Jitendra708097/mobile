@@ -13,13 +13,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import Animated, {  useAnimatedStyle,  useSharedValue,  withRepeat,  withTiming,  Easing} from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';

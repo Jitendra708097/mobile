@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-import api       from '../../api/axiosInstance.js';
 import AppInput  from '../../components/common/AppInput.jsx';
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
+import { submitRegularisation } from '../../services/regularisationService.js';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
@@ -48,7 +48,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
   const [checkIn,  setCheckIn]  = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [reason,   setReason]   = useState('');
-  const [evidence, setEvidence] = useState(EVIDENCE_TYPES.MANAGER_CONFIRMATION);
+  const [evidence, setEvidence] = useState(EVIDENCE_TYPES.EMAIL);
   const [photo,    setPhoto]    = useState(null);
   const [isLoading,setLoading]  = useState(false);
   const [error,    setError]    = useState('');
@@ -57,7 +57,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
   const reset = () => {
     setType(REGULARISATION_TYPES.MISSED_CHECKIN);
     setCheckIn(''); setCheckOut(''); setReason('');
-    setEvidence(EVIDENCE_TYPES.MANAGER_CONFIRMATION);
+    setEvidence(EVIDENCE_TYPES.EMAIL);
     setPhoto(null); setError(''); setSuccess(false);
   };
 
@@ -76,14 +76,13 @@ const RegularisationModal = ({ visible, onClose, date }) => {
     if (!reason.trim()) { setError('Reason is required.'); return; }
     setLoading(true); setError('');
     try {
-      await api.post(API_ROUTES.REGULARISATION, {
+      await submitRegularisation({
         date:              date || new Date().toISOString().split('T')[0],
-        type,
         requestedCheckIn:  checkIn  || undefined,
         requestedCheckOut: checkOut || undefined,
         reason:            reason.trim(),
         evidenceType:      evidence,
-        evidenceBase64:    photo?.base64 || undefined,
+        evidenceUrl:       photo?.uri || undefined,
       });
       setSuccess(true);
       setTimeout(() => handleClose(), 1800);

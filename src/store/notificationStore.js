@@ -7,9 +7,13 @@
  */
 
 import { create } from 'zustand';
-import api from '../api/axiosInstance.js';
 import { parseError } from '../utils/errorParser.js';
-import { API_ROUTES } from '../utils/constants.js';
+import {
+  fetchNotifications,
+  fetchUnreadCount,
+  markAllNotificationsRead,
+  markNotificationsRead,
+} from '../services/notificationService.js';
 
 const useNotificationStore = create((set, get) => ({
   // ─── State ─────────────────────────────────────────────────────────────────
@@ -29,10 +33,10 @@ const useNotificationStore = create((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const res  = await api.get(API_ROUTES.NOTIFICATIONS, {
-        params: { page, limit: 20 },
+      const { notifications, unreadCount, hasMore } = await fetchNotifications({
+        page,
+        limit: 20,
       });
-      const { notifications, unreadCount, hasMore } = res.data.data;
 
       set((state) => ({
         notifications: reset ? notifications : [...state.notifications, ...notifications],
@@ -49,8 +53,8 @@ const useNotificationStore = create((set, get) => ({
   // ─── Refresh unread count only (for bell badge) ─────────────────────────────
   refreshUnreadCount: async () => {
     try {
-      const res = await api.get(`${API_ROUTES.NOTIFICATIONS}/unread-count`);
-      set({ unreadCount: res.data.data.unreadCount });
+      const data = await fetchUnreadCount();
+      set({ unreadCount: data.unreadCount });
     } catch {
       // Non-critical — silent fail
     }
@@ -67,7 +71,7 @@ const useNotificationStore = create((set, get) => ({
     }));
 
     try {
-      await api.patch(`${API_ROUTES.NOTIFICATIONS}/${notificationId}/read`);
+      await markNotificationsRead([notificationId]);
     } catch {
       // Revert on failure
       set((state) => ({
@@ -91,7 +95,7 @@ const useNotificationStore = create((set, get) => ({
     }));
 
     try {
-      await api.post(API_ROUTES.NOTIFICATIONS_READ);
+      await markAllNotificationsRead();
     } catch {
       set({ notifications: prevNotifications, unreadCount: prevCount });
     }

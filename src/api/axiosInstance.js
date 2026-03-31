@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '../utils/constants.js';
 
-const BASE_URL = 'https://api.attendease.com/api/v1';
+const BASE_URL = 'http://localhost:3000/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,

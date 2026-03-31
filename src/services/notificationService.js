@@ -18,6 +18,7 @@ import * as Device        from 'expo-device';
 import Constants          from 'expo-constants';
 import { Platform }       from 'react-native';
 import api from '../api/axiosInstance.js';
+import { API_ROUTES } from '../utils/constants.js';
 
 // ─── Configure foreground notification behaviour ──────────────────────────────
 Notifications.setNotificationHandler({
@@ -91,7 +92,7 @@ export const getFCMToken = async () => {
  */
 export const registerTokenWithBackend = async (fcmToken, deviceId) => {
   try {
-    await api.post('/device-tokens', {
+    await api.post(API_ROUTES.NOTIFICATIONS_REGISTER_TOKEN, {
       fcmToken,
       deviceId,
       platform: Platform.OS,
@@ -152,4 +153,24 @@ export const addNotificationResponseListener = (handler) =>
  */
 export const setBadgeCount = async (count) => {
   await Notifications.setBadgeCountAsync(count);
+};
+
+export const fetchNotifications = async (params = {}) => {
+  const response = await api.get(API_ROUTES.NOTIFICATIONS, { params });
+  return response.data.data;
+};
+
+export const fetchUnreadCount = async () => {
+  const response = await api.get(API_ROUTES.NOTIFICATIONS_UNREAD_COUNT);
+  return response.data.data;
+};
+
+export const markNotificationsRead = async (ids) => {
+  const response = await api.post(API_ROUTES.NOTIFICATIONS_READ, { ids });
+  return response.data.data;
+};
+
+export const markAllNotificationsRead = async () => {
+  const response = await api.post(API_ROUTES.NOTIFICATIONS_READ_ALL);
+  return response.data.data;
 };
