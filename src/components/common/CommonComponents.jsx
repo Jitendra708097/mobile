@@ -35,12 +35,7 @@ const loStyles = StyleSheet.create({
     padding:         spacing['2xl'],
     alignItems:      'center',
     minWidth:        200,
-    // iOS
-    shadowColor:  '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    // Android
+    boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.15)',
     elevation: 8,
   },
   message: {

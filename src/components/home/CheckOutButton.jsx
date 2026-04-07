@@ -86,10 +86,7 @@ const styles = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
     // iOS
-    shadowColor:   colors.danger,
-    shadowOffset:  { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius:  16,
+    boxShadow: '0px 8px 16px rgba(220, 38, 38, 0.28)',
     // Android
     elevation: 8,
   },

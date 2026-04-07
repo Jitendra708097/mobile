@@ -220,10 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems:      'center',
     justifyContent:  'center',
-    shadowColor:     colors.accent,
-    shadowOffset:    { width: 0, height: 6 },
-    shadowOpacity:   0.3,
-    shadowRadius:    12,
+    boxShadow:       '0px 6px 12px rgba(13, 115, 119, 0.3)',
     elevation:       8,
   },
   fabText: {

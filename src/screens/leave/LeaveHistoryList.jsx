@@ -187,10 +187,7 @@ const styles = StyleSheet.create({
     borderRadius:    14,
     padding:         spacing.base,
     marginBottom:    spacing.sm,
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 1 },
-    shadowOpacity:   0.05,
-    shadowRadius:    6,
+    boxShadow:       '0px 1px 6px rgba(0, 0, 0, 0.05)',
     elevation:       1,
   },
   topRow: {

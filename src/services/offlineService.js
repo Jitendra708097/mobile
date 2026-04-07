@@ -7,7 +7,7 @@
  *              Called by: offlineQueueStore, attendanceStore.
  */
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const OFFLINE_QUEUE_PATH = FileSystem.documentDirectory + 'attendease_offline_queue.json';
 

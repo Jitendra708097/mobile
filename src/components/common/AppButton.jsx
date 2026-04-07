@@ -119,20 +119,12 @@ const styles = StyleSheet.create({
   // ── Variants ───────────────────────────────────────────────────────────────
   primary: {
     backgroundColor: colors.accent,
-    // iOS shadow
-    shadowColor:  colors.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius:  12,
-    // Android
+    boxShadow: '0px 6px 12px rgba(13, 115, 119, 0.28)',
     elevation: 6,
   },
   danger: {
     backgroundColor: colors.danger,
-    shadowColor:  colors.danger,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius:  12,
+    boxShadow: '0px 6px 12px rgba(220, 38, 38, 0.25)',
     elevation: 6,
   },
   outline: {
@@ -159,7 +151,7 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.55,
     elevation: 0,
-    shadowOpacity: 0,
+    boxShadow: 'none',
   },
   disabledLabel: {
     opacity: 0.8,

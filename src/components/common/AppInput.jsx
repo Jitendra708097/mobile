@@ -131,12 +131,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: colors.borderFocus,
-    // iOS
-    shadowColor:   colors.accent,
-    shadowOffset:  { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius:  6,
-    // Android
+    boxShadow: '0px 0px 6px rgba(13, 115, 119, 0.12)',
     elevation: 2,
   },
   inputError: {

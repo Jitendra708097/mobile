@@ -29,16 +29,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgSurface,
     borderRadius:    16,
-    // iOS
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 2 },
-    shadowOpacity:   0.07,
-    shadowRadius:    12,
-    // Android
+    boxShadow: '0px 2px 12px rgba(0, 0, 0, 0.07)',
     elevation: 3,
   },
   noShadow: {
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation:     0,
     borderWidth:   1,
     borderColor:   colors.border,

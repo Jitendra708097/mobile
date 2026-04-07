@@ -18,7 +18,7 @@
  *              Called by: App root (index.js / AppEntry).
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -85,6 +85,7 @@ const AppNavigator = () => {
       <SafeAreaProvider>
         <NavigationContainer>
           {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+          {/* {isAuthenticated ? <AuthNavigator /> : <MainNavigator />} */}
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

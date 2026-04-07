@@ -50,7 +50,9 @@ const LoginScreen = ({ navigation }) => {
     clearErr();
     if (!validate()) return;
 
+    console.log("Hello");
     const result = await login(email, password);
+    console,login("result: ",result);
     if (result.success) {
       const { employee } = result;
       if (employee.isFirstLogin)  { navigation.replace('SetPassword'); return; }
@@ -162,10 +164,7 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
     marginBottom:    spacing.base,
     // iOS
-    shadowColor:   colors.accent,
-    shadowOffset:  { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius:  16,
+    boxShadow: '0px 8px 16px rgba(13, 115, 119, 0.3)',
     // Android
     elevation: 8,
   },
@@ -193,10 +192,7 @@ const styles = StyleSheet.create({
     borderRadius:    20,
     padding:         spacing.xl,
     // iOS
-    shadowColor:  '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)',
     // Android
     elevation: 5,
   },

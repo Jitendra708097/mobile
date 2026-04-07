@@ -65,10 +65,7 @@ const styles = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
     // iOS glow
-    shadowColor:   colors.accent,
-    shadowOffset:  { width: 0, height: 8 },
-    shadowOpacity: 0.32,
-    shadowRadius:  16,
+    boxShadow: '0px 8px 16px rgba(13, 115, 119, 0.32)',
     // Android
     elevation: 8,
   },

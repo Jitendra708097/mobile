@@ -25,7 +25,7 @@ import { spacing }         from '../../theme/spacing.js';
 import { formatDate }      from '../../utils/formatters.js';
 
 // ── Main ProfileScreen ───────────────────────────────────────────────────────
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const user          = useAuthStore((s) => s.user);
   const logout        = useAuthStore((s) => s.logout);
   const isLoading     = useAuthStore((s) => s.isLoading);
@@ -103,6 +103,16 @@ const ProfileScreen = () => {
               thumbColor={notifEnabled ? colors.accent : colors.bgSubtle}
             />
           </View>
+
+          <Divider />
+
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate('DeviceException')}
+          >
+            <Text style={styles.actionLabel}>📱  Forgot My Phone</Text>
+            <Text style={styles.actionChevron}>›</Text>
+          </TouchableOpacity>
 
           <Divider />
 
@@ -204,10 +214,7 @@ const styles = StyleSheet.create({
     borderRadius:    16,
     padding:         spacing.base,
     marginBottom:    spacing.base,
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 1 },
-    shadowOpacity:   0.05,
-    shadowRadius:    8,
+    boxShadow:       '0px 1px 8px rgba(0, 0, 0, 0.05)',
     elevation:       1,
   },
   sectionHeading: {

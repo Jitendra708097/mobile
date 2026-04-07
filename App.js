@@ -19,16 +19,8 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
-import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
-} from '@expo-google-fonts/outfit';
-import {
-  DMMono_400Regular,
-  DMMono_500Medium,
-} from '@expo-google-fonts/dm-mono';
+import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold } from '@expo-google-fonts/outfit';
+import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 
 import AppNavigator from './src/navigation/AppNavigator.jsx';
 import { colors }   from './src/theme/colors.js';
@@ -60,6 +52,7 @@ export default function App() {
   );
 }
 
+// CSS 
 const styles = StyleSheet.create({
   root: {
     flex:            1,

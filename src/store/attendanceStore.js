@@ -25,6 +25,7 @@ const useAttendanceStore = create((set, get) => ({
   isSyncing: false,
   error: null,
   offlineQueue: [],
+  selectedDeviceException: null,
 
   syncWithServer: async () => {
     if (get().isSyncing) {
@@ -74,6 +75,7 @@ const useAttendanceStore = create((set, get) => ({
 
     try {
       const deviceId = await getDeviceId();
+      const selectedDeviceException = get().selectedDeviceException;
       const data = await checkInRequest({
         challengeToken,
         captureTimestamp: location.timestamp || Date.now(),
@@ -86,12 +88,15 @@ const useAttendanceStore = create((set, get) => ({
         altitude: location.altitude,
         speed: location.speed,
         isMocked: Boolean(location.isMocked),
+        useDeviceException: Boolean(selectedDeviceException),
+        exceptionId: selectedDeviceException?.id,
       });
 
       set({
         buttonState: BUTTON_STATES.CHECKED_IN,
         openSession: data.session,
         sessionsToday: get().sessionsToday + 1,
+        selectedDeviceException: null,
         isLoading: false,
         error: null,
       });
@@ -169,6 +174,7 @@ const useAttendanceStore = create((set, get) => ({
 
   clearError: () => set({ error: null }),
   setLoading: (value) => set({ isLoading: value }),
+  setSelectedDeviceException: (value) => set({ selectedDeviceException: value }),
 }));
 
 export default useAttendanceStore;

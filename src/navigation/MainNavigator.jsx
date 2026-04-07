@@ -28,6 +28,7 @@ import HomeScreen           from '../screens/home/HomeScreen.jsx';
 import HistoryScreen        from '../screens/history/HistoryScreen.jsx';
 import LeaveScreen          from '../screens/leave/LeaveScreen.jsx';
 import ProfileScreen        from '../screens/profile/ProfileScreen.jsx';
+import DeviceExceptionScreen from '../screens/DeviceExceptionScreen.jsx';
 import NotificationsScreen  from '../screens/notifications/NotificationsScreen.jsx';
 import LivenessChallenge    from '../screens/home/LivenessChallenge.jsx';
 import RegularisationModal  from '../screens/history/RegularisationModal.jsx';
@@ -101,9 +102,7 @@ const TabNavigator = () => (
     screenOptions={({ route, navigation }) => ({
       headerStyle: {
         backgroundColor: colors.bgSurface,
-        shadowColor:     '#000',
-        shadowOpacity:   0.06,
-        shadowRadius:    8,
+        boxShadow:       '0px 2px 8px rgba(0, 0, 0, 0.06)',
         elevation:       3,
       },
       headerTitleStyle: {
@@ -192,7 +191,7 @@ const MainNavigator = () => {
         options={{
           headerShown:            true,
           title:                  'Notifications',
-          headerStyle:            { backgroundColor: colors.bgSurface, elevation: 3, shadowOpacity: 0.06 },
+          headerStyle:            { backgroundColor: colors.bgSurface, elevation: 3, boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' },
           headerTitleStyle:       { fontFamily: typography.fontSemiBold, fontSize: typography.md, color: colors.textPrimary },
           headerBackTitleVisible: false,
           headerTintColor:        colors.accent,
@@ -219,6 +218,18 @@ const MainNavigator = () => {
           headerShown:    false,
           presentation:   'modal',
           gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="DeviceException"
+        component={DeviceExceptionScreen}
+        options={{
+          headerShown: true,
+          title: 'Device Exception',
+          headerStyle: { backgroundColor: colors.bgSurface, elevation: 3, boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' },
+          headerTitleStyle: { fontFamily: typography.fontSemiBold, fontSize: typography.md, color: colors.textPrimary },
+          headerBackTitleVisible: false,
+          headerTintColor: colors.accent,
         }}
       />
     </Stack.Navigator>
