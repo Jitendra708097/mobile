@@ -64,18 +64,40 @@ const HomeScreen = ({ navigation }) => {
 
   // ── Refresh GPS status + unread count on focus ───────────────────────────
   useEffect(() => {
-    refreshGps();
-    refreshUnread();
-  }, []);
+    const init = async () => {
+      try {
+            await refreshGps();
+            await refreshUnread();
+      }  catch (error) {
+        console.error('Failed to refresh: ',error);
+      }
+    }
+
+    init();
+  },[]);
 
   const refreshGps = async () => {
     setGpsStatus(GPS_STATUS.LOADING);
     const loc = await getQuickLocation();
-    if (!loc) { setGpsStatus(GPS_STATUS.OUTSIDE); return; }
+    console.log("My Location: ",loc);
+    if (!loc) 
+    { 
+      setGpsStatus(GPS_STATUS.OUTSIDE); 
+      return; 
+    }
     const accuracy = loc.coords.accuracy;
-    if (accuracy > 100)       setGpsStatus(GPS_STATUS.OUTSIDE);
-    else if (accuracy > 50)   setGpsStatus(GPS_STATUS.WEAK);
-    else                      setGpsStatus(GPS_STATUS.INSIDE);
+    if (accuracy > 100)
+    {
+      setGpsStatus(GPS_STATUS.OUTSIDE);
+    }
+    else if (accuracy > 50)
+    {
+      setGpsStatus(GPS_STATUS.WEAK);
+    }
+    else
+    {
+      setGpsStatus(GPS_STATUS.INSIDE);
+    }
   };
 
   // ── CAP_REACHED grey button ──────────────────────────────────────────────
