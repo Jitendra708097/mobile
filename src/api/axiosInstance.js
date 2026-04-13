@@ -2,7 +2,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '../utils/constants.js';
 
-const BASE_URL = 'http://192.168.1.34:3000/api/v1';
+// ✅ FIX: Use environment variable instead of hardcoded IP
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.39:3000/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -48,7 +49,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         const { default: useAuthStore } = await import('../store/authStore.js');
         await useAuthStore.getState().clearAuth();
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
       }
     }
 
