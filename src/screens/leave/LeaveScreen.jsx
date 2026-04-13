@@ -117,7 +117,18 @@ const LeaveScreen = () => {
   const [reason,    setReason]    = useState('');
   const [isHalfDay, setIsHalfDay] = useState(false);
 
-  useEffect(() => { fetchBalance(); fetchHistory(); }, []);
+  useEffect(() => { 
+    const init =  async() => {
+      try {
+            await fetchBalance(); 
+            await fetchHistory();
+      } catch (error) {
+        console.log("fetch Balanace Error: ",error);
+      }
+    }
+
+    init();
+   }, []);
 
   const fetchBalance = async () => {
     try {
