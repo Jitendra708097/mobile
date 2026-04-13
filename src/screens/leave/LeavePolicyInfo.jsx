@@ -8,33 +8,15 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, ActivityIndicator,
-} from 'react-native';
-
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import api           from '../../api/axiosInstance.js';
 import AppCard       from '../../components/common/AppCard.jsx';
 import { EmptyState } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import { LEAVE_TYPE_LABELS } from '../../utils/constants.js';
-
-/** Fallback static policy data when API is unavailable */
-const FALLBACK_POLICY = {
-  carryForward:  true,
-  maxCarryDays:  10,
-  noticePeriod:  { casual: 1, sick: 0, earned: 7, optional: 3 },
-  accrualType:   'monthly',
-  encashable:    ['earned'],
-  restrictions:  [
-    'Casual leave cannot exceed 3 consecutive days.',
-    'Sick leave requires a medical certificate for > 2 days.',
-    'Earned leave requires 7 days advance notice.',
-    'Leave cannot be applied for past dates.',
-    'Optional leave is based on the government holiday list.',
-  ],
-};
+import { LEAVE_TYPE_LABELS, FALLBACK_POLICY } from '../../utils/constants.js';
+import { cacheDirectory } from 'expo-file-system/legacy';
 
 const PolicyRow = ({ label, value }) => (
   <View style={styles.policyRow}>
@@ -47,8 +29,12 @@ const LeavePolicyInfo = () => {
   const [policy,   setPolicy]   = useState(null);
   const [isLoading,setLoading]  = useState(true);
 
-  useEffect(() => {
-    fetchPolicy();
+  useEffect( async() => {
+    try {
+          await fetchPolicy();
+    } catch (error) {
+      console.error('Error: ',error);
+    }
   }, []);
 
   const fetchPolicy = async () => {
