@@ -10,10 +10,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';  // useRef from 'react' ✅
-import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 import StatusBadge from '../../components/common/StatusBadge.jsx';
@@ -40,7 +37,13 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
 
   const cancelSheetRef = useRef(null);  // ✅ correct — useRef from 'react'
 
-  useEffect(() => { fetchHistory(1, true); }, []);
+  useEffect( async() => { 
+    try {
+          await fetchHistory(1,true);
+    } catch (error) {
+      console.error('Error: ',error);
+    }
+   }, []);
 
   const fetchHistory = async (pageNum = 1, reset = false) => {
     if (isLoading) return;
