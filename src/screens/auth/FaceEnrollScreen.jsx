@@ -105,7 +105,10 @@ const FaceEnrollScreen = ({ navigation }) => {
       setIsUploading(false);
       setIsCapturing(false);
       setStatusMsg('');
-      setQuality({ valid: false, reason: 'Enrollment failed. Please try again.' });
+      setQuality({ 
+        valid: false, 
+        reason: error.message || 'Enrollment failed. Please try again.' 
+      });
       startDetectionLoop();
     }
   };
@@ -113,38 +116,63 @@ const FaceEnrollScreen = ({ navigation }) => {
   const pollEnrollmentStatus = async () => {
     const employeeId = user?.id;
 
-    if (!employeeId) {
-      throw new Error('Missing employee id');
+    if (!employeeId || !user) {
+      throw new Error('Missing employee information. Please log in again.');
     }
 
     let attempts = 0;
+    const MAX_ATTEMPTS = 10;
+    const POLL_INTERVAL = 1000;
+    const MAX_POLL_TIME = 15000;
 
-    const poll = async () => {
-      const response = await api.get(`${API_ROUTES.FACE_ENROLL_STATUS}/${employeeId}`);
-      const status = response.data.data.status;
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
 
-      if (status === 'enrolled') {
-        await markFaceEnrolled();
-        setStatusMsg('Enrollment complete');
-        setTimeout(() => {
-          navigation.replace('Tabs');
-        }, 800);
-        return;
-      }
+      const poll = async () => {
+        try {
+          const elapsedTime = Date.now() - startTime;
+          if (elapsedTime > MAX_POLL_TIME) {
+            reject(new Error('Enrollment verification timed out after 15 seconds'));
+            return;
+          }
 
-      if (status === 'failed') {
-        throw new Error('Enrollment failed');
-      }
+          const response = await api.get(`${API_ROUTES.FACE_ENROLL_STATUS}/${employeeId}`);
+          const status = response.data.data.status;
 
-      attempts += 1;
-      if (attempts >= 10) {
-        throw new Error('Enrollment timed out');
-      }
+          if (status === 'enrolled') {
+            await markFaceEnrolled();
+            setStatusMsg('Enrollment complete');
+            setTimeout(() => {
+              navigation.replace('Tabs');
+            }, 800);
+            resolve();
+            return;
+          }
 
-      setTimeout(poll, 1000);
-    };
+          if (status === 'failed') {
+            reject(new Error('Server rejected face enrollment'));
+            return;
+          }
 
-    await poll();
+          attempts += 1;
+          if (attempts >= MAX_ATTEMPTS) {
+            reject(new Error('Enrollment verification still pending after 10 attempts'));
+            return;
+          }
+
+          setTimeout(poll, POLL_INTERVAL);
+        } catch (err) {
+          if (attempts < MAX_ATTEMPTS) {
+            attempts += 1;
+            setTimeout(poll, POLL_INTERVAL);
+          } else {
+            reject(err);
+          }
+        }
+      };
+
+      poll();
+    });
   };
 
   if (!permission) {
