@@ -36,8 +36,14 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
   const sheetRef = useRef(null);
 
   useEffect(() => {
-    if (visible) sheetRef.current?.expand();
-    else         sheetRef.current?.close();
+    if (visible)
+    {
+     sheetRef.current?.expand();
+    }
+    else
+    {
+     sheetRef.current?.close();
+    }
   }, [visible]);
 
   const handleConfirm = async () => {

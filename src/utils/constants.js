@@ -5,12 +5,37 @@
  *              Called by: stores, components, screens.
  */
 
+import { colors } from "../theme/colors";
 // ─── Check-In Button States ──────────────────────────────────────────────────
 export const BUTTON_STATES = {
   CHECK_IN:    'CHECK_IN',     // green — ready to check in
   CHECKED_IN:  'CHECKED_IN',  // red   — session open, can check out
   COOLDOWN:    'COOLDOWN',     // grey  — wait for cooldown
   CAP_REACHED: 'CAP_REACHED', // grey  — max sessions hit
+};
+
+/** Fallback static policy data when API is unavailable */
+export const FALLBACK_POLICY = {
+  carryForward:  true,
+  maxCarryDays:  10,
+  noticePeriod:  { casual: 1, sick: 0, earned: 7, optional: 3 },
+  accrualType:   'monthly',
+  encashable:    ['earned'],
+  restrictions:  [
+    'Casual leave cannot exceed 3 consecutive days.',
+    'Sick leave requires a medical certificate for > 2 days.',
+    'Earned leave requires 7 days advance notice.',
+    'Leave cannot be applied for past dates.',
+    'Optional leave is based on the government holiday list.',
+  ],
+};
+
+/** Color per leave type */
+export const TYPE_COLORS = {
+  casual:   colors.info,
+  sick:     colors.danger,
+  earned:   colors.success,
+  optional: colors.warning,
 };
 
 // ─── Attendance Status ───────────────────────────────────────────────────────
@@ -148,10 +173,10 @@ export const API_ROUTES = {
   ATTENDANCE_STATUS:  '/attendance/today',
   ATTENDANCE_HISTORY: '/attendance/history',
   LEAVE_BALANCE:      '/leave/balance',
-  LEAVE_APPLY:        '/leave',
-  LEAVE_HISTORY:      '/leave',
-  LEAVE_CANCEL:       '/leave/:id',
-  NOTIFICATIONS:      '/notifications',
+  LEAVE_APPLY:        '/leave/apply',
+  LEAVE_HISTORY:      '/leave/history',
+  LEAVE_CANCEL:       '/leave/:id/cancel',
+  NOTIFICATIONS:      '/notifications/',
   NOTIFICATIONS_READ: '/notifications/read',
   NOTIFICATIONS_READ_ALL: '/notifications/read-all',
   NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count',
@@ -160,4 +185,34 @@ export const API_ROUTES = {
   CHANGE_PASSWORD:    '/auth/change-password',
   REGISTER_DEVICE:    '/auth/register-device',
   REGULARISATION:     '/regularisations',
+};
+
+export const ACCURATE_OPTIONS = {
+  performanceMode:    'accurate',
+  landmarkMode:       'none',
+  classificationMode: 'all',   // enables eye open + smile probabilities
+  minFaceSize:        0.15,
+  trackingEnabled:    false,
+};
+
+/** Fast mode for live challenge polling — minimise latency. */
+export const FAST_OPTIONS = {
+  performanceMode:    'fast',
+  landmarkMode:       'none',
+  classificationMode: 'all',
+  minFaceSize:        0.1,
+  trackingEnabled:    false,  // trackingEnabled is marked "COMING SOON" in v2.0.1
+};
+
+/**
+ * Custom error codes thrown by this service.
+ * These map to GEO_XXX backend codes via errorParser.
+ */
+export const LOCATION_ERRORS = {
+  PERMISSION_DENIED:  'PERMISSION_DENIED',
+  MOCK_LOCATION:      'MOCK_LOCATION',
+  GPS_INACCURATE:     'GPS_INACCURATE',
+  IMPOSSIBLE_SPEED:   'IMPOSSIBLE_SPEED',
+  INVALID_ALTITUDE:   'INVALID_ALTITUDE',
+  TIMEOUT:            'LOCATION_TIMEOUT',
 };

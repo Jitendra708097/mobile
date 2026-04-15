@@ -6,12 +6,7 @@ import useAttendanceStore from '../../store/attendanceStore.js';
 import useNetworkStatus from '../../hooks/useNetworkStatus.js';
 import AppButton from '../../components/common/AppButton.jsx';
 import { LoadingOverlay, ErrorMessage } from '../../components/common/CommonComponents.jsx';
-import {
-  quickFaceCheck,
-  detectChallengeCompletion,
-  compressSelfie,
-  deleteTempImage,
-} from '../../services/faceService.js';
+import { quickFaceCheck, detectChallengeCompletion, compressSelfie, deleteTempImage,} from '../../services/faceService.js';
 import { getVerifiedLocation, getLocationErrorMessage } from '../../services/locationService.js';
 import { LIVENESS_CHALLENGE_LABELS } from '../../utils/constants.js';
 import { colors } from '../../theme/colors.js';
@@ -49,6 +44,7 @@ const LivenessChallenge = ({ navigation }) => {
 
     return () => {
       clearInterval(detectRef.current);
+      cameraRef.current = null;
     };
   }, []);
 

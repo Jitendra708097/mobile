@@ -29,12 +29,15 @@ const LeavePolicyInfo = () => {
   const [policy,   setPolicy]   = useState(null);
   const [isLoading,setLoading]  = useState(true);
 
-  useEffect( async() => {
-    try {
-          await fetchPolicy();
-    } catch (error) {
-      console.error('Error: ',error);
-    }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchPolicy();
+      } catch (error) {
+        console.error('Error: ', error);
+      }
+    };
+    fetchData();
   }, []);
 
   const fetchPolicy = async () => {

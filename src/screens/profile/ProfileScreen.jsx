@@ -6,10 +6,10 @@
  *              Called by: MainNavigator (Tab 4 — Profile).
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Switch, StyleSheet,
+  Switch, StyleSheet, AsyncStorage,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -31,6 +31,29 @@ const ProfileScreen = ({ navigation }) => {
   const isLoading     = useAuthStore((s) => s.isLoading);
 
   const [notifEnabled, setNotifEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const loadThemePreference = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('theme');
+        if (saved === 'dark') setDarkMode(true);
+      } catch (error) {
+        console.log('Failed to load theme preference:', error);
+      }
+    };
+    loadThemePreference();
+  }, []);
+
+  const handleThemeToggle = async (enabled) => {
+    setDarkMode(enabled);
+    try {
+      await AsyncStorage.setItem('theme', enabled ? 'dark' : 'light');
+      // Theme will be applied on app restart or by passing theme state to context
+    } catch (error) {
+      console.log('Failed to save theme preference:', error);
+    }
+  };
 
   const changePassRef = useRef(null);
   const logoutRef     = useRef(null);
@@ -101,6 +124,18 @@ const ProfileScreen = ({ navigation }) => {
               onValueChange={setNotifEnabled}
               trackColor={{ false: colors.border, true: colors.accentLight }}
               thumbColor={notifEnabled ? colors.accent : colors.bgSubtle}
+            />
+          </View>
+
+          <Divider />
+
+          <View style={styles.actionRow}>
+            <Text style={styles.actionLabel}>🌙  Dark Mode</Text>
+            <Switch
+              value={darkMode}
+              onValueChange={handleThemeToggle}
+              trackColor={{ false: colors.border, true: colors.accentLight }}
+              thumbColor={darkMode ? colors.accent : colors.bgSubtle}
             />
           </View>
 

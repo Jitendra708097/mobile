@@ -12,15 +12,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
-import { LEAVE_TYPE_LABELS } from '../../utils/constants.js';
-
-/** Color per leave type */
-const TYPE_COLORS = {
-  casual:   colors.info,
-  sick:     colors.danger,
-  earned:   colors.success,
-  optional: colors.warning,
-};
+import { LEAVE_TYPE_LABELS, TYPE_COLORS } from '../../utils/constants.js';
 
 /**
  * @param {object} props

@@ -19,15 +19,6 @@ import { spacing }   from '../../theme/spacing.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
 import { NOTIFICATION_TYPES } from '../../utils/constants.js';
 
-// const TYPE_ICONS = {
-//   leave_approved:            '✅',
-//   leave_rejected:            '❌',
-//   regularisation_approved:   '✅',
-//   regularisation_rejected:   '❌',
-//   checkin_reminder:          '⏰',
-//   checkout_reminder:         '⏰',
-//   general:                   '📢',
-// };
 
 const NotificationItem = ({ item, onPress }) => {
   const icon = NOTIFICATION_TYPES[item.type] || '📢';

@@ -10,12 +10,11 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, StyleSheet,
+  KeyboardAvoidingView, Platform, StyleSheet, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import useAuthStore  from '../../store/authStore.js';
-import AppInput      from '../../components/common/AppInput.jsx';
 import AppButton     from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
@@ -40,25 +39,45 @@ const LoginScreen = ({ navigation }) => {
     const e = {};
     const emailV = validateEmail(email);
     const passV  = validateLoginPassword(password);
-    if (!emailV.valid)  e.email    = emailV.message;
-    if (!passV.valid)   e.password = passV.message;
+    if (!emailV.valid)
+    {
+      e.email    = emailV.message;
+    }
+    if (!passV.valid)
+    {
+      e.password = passV.message;
+    } 
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleLogin = async () => {
     clearErr();
-    if (!validate()) return;
+    if (!validate())
+       return;
 
-    console.log("Hello");
     const result = await login(email, password);
-    console,login("result: ",result);
-    if (result.success) {
-      const { employee } = result;
-      if (employee.isFirstLogin)  { navigation.replace('SetPassword'); return; }
-      if (!employee.faceEnrolled) { navigation.replace('FaceEnroll');  return; }
-      // MainNavigator handles the rest
+    if (!result || !result.success) {
+      // Error already stored; component will re-render
+      return;
     }
+
+    const { employee } = result;
+    if (!employee) {
+      return;
+    }
+    
+    if (employee.isFirstLogin) {
+      navigation.replace('SetPassword');
+      return;
+    }
+    if (!employee.faceEnrolled) {
+      navigation.replace('FaceEnroll');
+      return;
+    }
+    
+    // User is fully set up, navigate to main app
+    navigation.replace('Tabs');
   };
 
   return (
@@ -88,34 +107,37 @@ const LoginScreen = ({ navigation }) => {
 
             {storeErr && <ErrorMessage message={storeErr} />}
 
-            <AppInput
-              label="Employee Email"
+            <Text style={styles.label}>Employee Email</Text>
+            <TextInput
               value={email}
               onChangeText={(v) => { setEmail(v); setErrors((p) => ({ ...p, email: '' })); }}
               placeholder="you@company.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              error={errors.email}
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
+              style={[styles.input, errors.email && styles.inputError]}
             />
+            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-            <AppInput
-              inputRef={passwordRef}
-              label="Password"
-              value={password}
-              onChangeText={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Your password"
-              secureTextEntry={!showPass}
-              error={errors.password}
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              rightIcon={
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                ref={passwordRef}
+                value={password}
+                onChangeText={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }}
+                placeholder="Your password"
+                secureTextEntry={!showPass}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                style={[styles.input, styles.inputWithIcon, errors.password && styles.inputError]}
+              />
+              <TouchableOpacity onPress={() => setShowPass((p) => !p)} style={styles.eyeIconBtn}>
                 <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
-              }
-              onRightIconPress={() => setShowPass((p) => !p)}
-            />
+              </TouchableOpacity>
+            </View>
+            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
             <TouchableOpacity style={styles.forgotRow}>
               <Text style={styles.forgotText}>Forgot password?</Text>
@@ -208,7 +230,53 @@ const styles = StyleSheet.create({
     color:        colors.textSecondary,
     marginBottom: spacing.xl,
   },
-  eyeIcon: { fontSize: 18 },
+
+  // ── TextInput Styles ─────────────────────────────────────────────────────────
+  label: {
+    fontFamily:   typography.fontSemiBold,
+    fontSize:     typography.sm,
+    color:        colors.textPrimary,
+    marginBottom: spacing.xs,
+    marginTop:    spacing.base,
+  },
+  input: {
+    borderWidth:       1,
+    borderColor:       colors.border,
+    borderRadius:      12,
+    paddingHorizontal: spacing.base,
+    paddingVertical:   spacing.sm,
+    fontFamily:        typography.fontRegular,
+    fontSize:          typography.base,
+    color:             colors.textPrimary,
+    backgroundColor:   colors.bgSubtle,
+  },
+  inputError: {
+    borderColor:    colors.danger,
+    backgroundColor: colors.danger + '10',
+  },
+  inputWithIcon: {
+    paddingRight: spacing['3xl'],
+  },
+  passwordRow: {
+    position: 'relative',
+  },
+  eyeIconBtn: {
+    position:       'absolute',
+    right:          spacing.base,
+    top:            0,
+    bottom:         0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  errorText: {
+    fontFamily: typography.fontRegular,
+    fontSize:   typography.xs,
+    color:      colors.danger,
+    marginTop:  spacing.xs,
+  },
   forgotRow: {
     alignItems:    'flex-end',
     marginTop:     -spacing.sm,

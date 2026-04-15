@@ -35,13 +35,16 @@ const HistoryScreen = ({ navigation }) => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDetail,  setShowDetail]  = useState(false);
 
-  useEffect( async() => { 
-    try {
-     await fetchHistory();
-    } catch (error) {
-      console.log("FetchHistory Error: ",error);
-    }
-   }, [month]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchHistory();
+      } catch (error) {
+        console.log("FetchHistory Error: ", error);
+      }
+    };
+    fetchData();
+  }, [month]);
 
   const fetchHistory = async () => {
     setLoading(true);

@@ -16,20 +16,8 @@
  */
 
 import * as Location from 'expo-location';
-import { GPS } from '../utils/constants.js';
+import { GPS, LOCATION_ERRORS } from '../utils/constants.js';
 
-/**
- * Custom error codes thrown by this service.
- * These map to GEO_XXX backend codes via errorParser.
- */
-export const LOCATION_ERRORS = {
-  PERMISSION_DENIED:  'PERMISSION_DENIED',
-  MOCK_LOCATION:      'MOCK_LOCATION',
-  GPS_INACCURATE:     'GPS_INACCURATE',
-  IMPOSSIBLE_SPEED:   'IMPOSSIBLE_SPEED',
-  INVALID_ALTITUDE:   'INVALID_ALTITUDE',
-  TIMEOUT:            'LOCATION_TIMEOUT',
-};
 
 /**
  * Request foreground location permission.

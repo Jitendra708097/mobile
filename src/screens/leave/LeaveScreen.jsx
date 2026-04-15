@@ -7,17 +7,15 @@
  *              Called by: MainNavigator (Tab 3 — Leave).
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useRef } from 'react';
 
 import AppButton  from '../../components/common/AppButton.jsx';
-import AppInput   from '../../components/common/AppInput.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
@@ -236,19 +234,21 @@ const LeaveScreen = () => {
           </View>
 
           <View style={styles.formPad}>
-            <AppInput
-              label="From Date (YYYY-MM-DD)"
+            <Text style={styles.label}>From Date (YYYY-MM-DD)</Text>
+            <TextInput
               value={fromDate}
               onChangeText={setFromDate}
               placeholder="2026-03-20"
               keyboardType="numbers-and-punctuation"
+              style={styles.input}
             />
-            <AppInput
-              label="To Date (YYYY-MM-DD)"
+            <Text style={[styles.label, { marginTop: spacing.base }]}>To Date (YYYY-MM-DD)</Text>
+            <TextInput
               value={toDate}
               onChangeText={setToDate}
               placeholder="2026-03-21"
               keyboardType="numbers-and-punctuation"
+              style={styles.input}
             />
 
             {/* Half day toggle */}
@@ -272,13 +272,14 @@ const LeaveScreen = () => {
               </View>
             )}
 
-            <AppInput
-              label="Reason *"
+            <Text style={styles.label}>Reason *</Text>
+            <TextInput
               value={reason}
               onChangeText={setReason}
               placeholder="Reason for leave..."
               multiline
               numberOfLines={3}
+              style={[styles.input, styles.textarea]}
             />
 
             <AppButton
@@ -391,6 +392,31 @@ const styles = StyleSheet.create({
   pillTextActive: { color: colors.accent },
 
   formPad:  { paddingHorizontal: spacing.base },
+
+  // ── TextInput Styles ─────────────────────────────────────────────────────────
+  label: {
+    fontFamily:   typography.fontSemiBold,
+    fontSize:     typography.sm,
+    color:        colors.textPrimary,
+    marginBottom: spacing.xs,
+    marginTop:    spacing.base,
+  },
+  input: {
+    borderWidth:       1,
+    borderColor:       colors.border,
+    borderRadius:      12,
+    paddingHorizontal: spacing.base,
+    paddingVertical:   spacing.sm,
+    fontFamily:        typography.fontRegular,
+    fontSize:          typography.base,
+    color:             colors.textPrimary,
+    backgroundColor:   colors.bgSubtle,
+  },
+  textarea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+
   halfDayRow: {
     flexDirection:   'row',
     justifyContent:  'space-between',

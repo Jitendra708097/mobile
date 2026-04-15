@@ -4,7 +4,13 @@
  *              Used in all store actions and screen error handlers.
  *              Falls back to backend message, then generic fallback.
  *              Called by: all store actions, all screen error displays.
+ * 
+ *              Enhanced 2026-04-14: Added error logging and recovery helpers.
  */
+
+// Error log storage (in-memory, cleared on app restart)
+const ERROR_LOG = [];
+const MAX_ERROR_LOG_SIZE = 50; // Keep last 50 errors
 
 const ERROR_MESSAGES = {
   // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -74,6 +80,55 @@ const ERROR_MESSAGES = {
 };
 
 /**
+ * Logs an error to in-memory storage for debugging
+ * @param {string} code - Error code (e.g., AUTH_001)
+ * @param {Error} error - Original error object
+ * @param {Object} context - Additional context {action, screen, timestamp}
+ */
+export const logError = (code, error, context = {}) => {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    code,
+    message: error?.message || ERROR_MESSAGES[code] || 'Unknown error',
+    status: error?.response?.status || null,
+    endpoint: error?.config?.url || null,
+    ...context,
+  };
+
+  ERROR_LOG.push(logEntry);
+  
+  // Keep log size manageable
+  if (ERROR_LOG.length > MAX_ERROR_LOG_SIZE) {
+    ERROR_LOG.shift();
+  }
+
+  // Log to console in dev mode
+  if (__DEV__) {
+    console.warn(`[${code}] ${logEntry.message}`, {
+      endpoint: logEntry.endpoint,
+      status: logEntry.status,
+      context,
+    });
+  }
+};
+
+/**
+ * Gets the error log (for debugging/reporting)
+ * @returns {Array} Array of error log entries
+ */
+export const getErrorLog = () => {
+  return ERROR_LOG.slice();
+};
+
+/**
+ * Clears the error log
+ */
+export const clearErrorLog = () => {
+  ERROR_LOG.length = 0;
+};
+
+/**
  * Parses an Axios error into a user-friendly string.
  * @param {Error} error - Axios error object
  * @returns {string} Human-readable error message
@@ -93,6 +148,21 @@ export const parseError = (error) => {
   if (backendMessage) return backendMessage;
 
   return ERROR_MESSAGES.GEN_001;
+};
+
+/**
+ * Parses error and logs it with context
+ * @param {Error} error - Error object
+ * @param {Object} context - Context {action, screen}
+ * @returns {string} Parsed error message
+ */
+export const parseAndLogError = (error, context = {}) => {
+  const code = getErrorCode(error);
+  const message = parseError(error);
+  
+  logError(code || 'UNKNOWN', error, context);
+  
+  return message;
 };
 
 /**

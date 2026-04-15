@@ -18,29 +18,9 @@
 
 import FaceDetection from '@react-native-ml-kit/face-detection';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { ACCURATE_OPTIONS, FAST_OPTIONS } from '../utils/constants';
 
-// ─── Detection option presets ────────────────────────────────────────────────
-
-/** Accurate mode for enrollment quality checks — slower but precise. */
-const ACCURATE_OPTIONS = {
-  performanceMode:    'accurate',
-  landmarkMode:       'none',
-  classificationMode: 'all',   // enables eye open + smile probabilities
-  minFaceSize:        0.15,
-  trackingEnabled:    false,
-};
-
-/** Fast mode for live challenge polling — minimise latency. */
-const FAST_OPTIONS = {
-  performanceMode:    'fast',
-  landmarkMode:       'none',
-  classificationMode: 'all',
-  minFaceSize:        0.1,
-  trackingEnabled:    false,  // trackingEnabled is marked "COMING SOON" in v2.0.1
-};
-
-// ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Detect all faces in a local image URI.
@@ -171,18 +151,21 @@ export const detectChallengeCompletion = (face, challenge) => {
  * @param {string} uri - local photo URI
  * @returns {Promise<{ uri: string, base64: string }>}
  */
+
 export const compressSelfie = async (uri) => {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 800 } }],
-    {
-      compress: 0.7,
-      format:   ImageManipulator.SaveFormat.JPEG,
-      base64:   true,
-    }
-  );
+  const context = ImageManipulator.ImageManipulator.manipulate(uri);
+  context.resize({ width: 800 });
+
+  const renderedImage = await context.renderAsync();
+  const result = await renderedImage.saveAsync({
+    compress: 0.7,
+    format: ImageManipulator.SaveFormat.JPEG,
+    base64: true,
+  });
+
   return { uri: result.uri, base64: result.base64 };
 };
+
 
 /**
  * Delete a temporary detection snapshot from the device filesystem.
@@ -190,6 +173,7 @@ export const compressSelfie = async (uri) => {
  *
  * @param {string} uri - local file URI to delete
  */
+
 export const deleteTempImage = async (uri) => {
   try {
     if (uri) await FileSystem.deleteAsync(uri, { idempotent: true });

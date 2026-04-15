@@ -8,21 +8,15 @@
  */
 
 import React, { useState } from 'react';
-import {
-  View, Text, TouchableOpacity, StyleSheet, Switch,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
-import AppInput  from '../../components/common/AppInput.jsx';
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import {
-  LEAVE_TYPES,
-  LEAVE_TYPE_LABELS,
-} from '../../utils/constants.js';
+import { LEAVE_TYPES, LEAVE_TYPE_LABELS } from '../../utils/constants.js';
 import { countWorkingDays } from '../../utils/formatters.js';
 import { applyLeave } from '../../services/leaveService.js';
 
@@ -137,19 +131,21 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
           </View>
         )}
 
-        <AppInput
-          label="From Date (YYYY-MM-DD)"
+        <Text style={styles.label}>From Date (YYYY-MM-DD)</Text>
+        <TextInput
           value={fromDate}
           onChangeText={setFromDate}
           placeholder="2026-03-20"
           keyboardType="numbers-and-punctuation"
+          style={styles.input}
         />
-        <AppInput
-          label="To Date (YYYY-MM-DD)"
+        <Text style={[styles.label, { marginTop: spacing.base }]}>To Date (YYYY-MM-DD)</Text>
+        <TextInput
           value={toDate}
           onChangeText={setToDate}
           placeholder="2026-03-21"
           keyboardType="numbers-and-punctuation"
+          style={styles.input}
         />
 
         {/* Half-day toggle */}
@@ -175,13 +171,14 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
           </View>
         )}
 
-        <AppInput
-          label="Reason *"
+        <Text style={styles.label}>Reason *</Text>
+        <TextInput
           value={reason}
           onChangeText={setReason}
           placeholder="Reason for leave..."
           multiline
           numberOfLines={3}
+          style={[styles.input, styles.textarea]}
         />
 
         {error && <ErrorMessage message={error} />}
@@ -254,6 +251,30 @@ const styles = StyleSheet.create({
   balanceValue: { fontFamily: typography.fontMonoMed, fontSize: typography.sm },
   balanceOk:    { color: colors.success },
   balanceLow:   { color: colors.warning },
+
+  // ── TextInput Styles ─────────────────────────────────────────────────────────
+  label: {
+    fontFamily:   typography.fontSemiBold,
+    fontSize:     typography.sm,
+    color:        colors.textPrimary,
+    marginBottom: spacing.xs,
+    marginTop:    spacing.base,
+  },
+  input: {
+    borderWidth:       1,
+    borderColor:       colors.border,
+    borderRadius:      12,
+    paddingHorizontal: spacing.base,
+    paddingVertical:   spacing.sm,
+    fontFamily:        typography.fontRegular,
+    fontSize:          typography.base,
+    color:             colors.textPrimary,
+    backgroundColor:   colors.bgSubtle,
+  },
+  textarea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
 
   toggleRow: {
     flexDirection:   'row',

@@ -9,12 +9,11 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, KeyboardAvoidingView,
-  Platform, StyleSheet,
+  Platform, StyleSheet, TextInput, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import useAuthStore  from '../../store/authStore.js';
-import AppInput      from '../../components/common/AppInput.jsx';
 import AppButton     from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
@@ -65,7 +64,10 @@ const SetPasswordScreen = ({ navigation }) => {
     clearErr();
     if (!validate()) return;
     const result = await setPassword(newPass);
-    if (result.success) navigation.replace('FaceEnroll');
+    if (!result || !result.success) {
+      return;
+    }
+    navigation.replace('FaceEnroll');
   };
 
   return (
@@ -93,16 +95,20 @@ const SetPasswordScreen = ({ navigation }) => {
           <View style={styles.form}>
             {storeErr && <ErrorMessage message={storeErr} />}
 
-            <AppInput
-              label="New Password"
-              value={newPass}
-              onChangeText={(v) => { setNewPass(v); setErrors((p) => ({ ...p, newPass: '' })); }}
-              placeholder="Min. 8 characters"
-              secureTextEntry={!showNew}
-              error={errors.newPass}
-              rightIcon={<Text style={styles.eye}>{showNew ? '🙈' : '👁️'}</Text>}
-              onRightIconPress={() => setShowNew((p) => !p)}
-            />
+            <Text style={styles.label}>New Password</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                value={newPass}
+                onChangeText={(v) => { setNewPass(v); setErrors((p) => ({ ...p, newPass: '' })); }}
+                placeholder="Min. 8 characters"
+                secureTextEntry={!showNew}
+                style={[styles.input, styles.inputWithIcon, errors.newPass && styles.inputError]}
+              />
+              <TouchableOpacity onPress={() => setShowNew((p) => !p)} style={styles.eyeIconBtn}>
+                <Text style={styles.eye}>{showNew ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
+            {errors.newPass && <Text style={styles.errorText}>{errors.newPass}</Text>}
 
             {/* Requirements checklist */}
             <View style={styles.checklist}>
@@ -111,16 +117,20 @@ const SetPasswordScreen = ({ navigation }) => {
               <CheckRow met={checks.number}    label="One number" />
             </View>
 
-            <AppInput
-              label="Confirm Password"
-              value={confirmPass}
-              onChangeText={(v) => { setConfirmPass(v); setErrors((p) => ({ ...p, confirmPass: '' })); }}
-              placeholder="Re-enter your password"
-              secureTextEntry={!showConfirm}
-              error={errors.confirmPass}
-              rightIcon={<Text style={styles.eye}>{showConfirm ? '🙈' : '👁️'}</Text>}
-              onRightIconPress={() => setShowConfirm((p) => !p)}
-            />
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                value={confirmPass}
+                onChangeText={(v) => { setConfirmPass(v); setErrors((p) => ({ ...p, confirmPass: '' })); }}
+                placeholder="Re-enter your password"
+                secureTextEntry={!showConfirm}
+                style={[styles.input, styles.inputWithIcon, errors.confirmPass && styles.inputError]}
+              />
+              <TouchableOpacity onPress={() => setShowConfirm((p) => !p)} style={styles.eyeIconBtn}>
+                <Text style={styles.eye}>{showConfirm ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
+            {errors.confirmPass && <Text style={styles.errorText}>{errors.confirmPass}</Text>}
 
             <AppButton
               label="Set Password & Continue"
@@ -164,7 +174,51 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.07)',
     elevation: 4,
   },
+
+  // ── TextInput Styles ─────────────────────────────────────────────────────────
+  label: {
+    fontFamily:   typography.fontSemiBold,
+    fontSize:     typography.sm,
+    color:        colors.textPrimary,
+    marginBottom: spacing.xs,
+    marginTop:    spacing.base,
+  },
+  input: {
+    borderWidth:       1,
+    borderColor:       colors.border,
+    borderRadius:      12,
+    paddingHorizontal: spacing.base,
+    paddingVertical:   spacing.sm,
+    fontFamily:        typography.fontRegular,
+    fontSize:          typography.base,
+    color:             colors.textPrimary,
+    backgroundColor:   colors.bgSubtle,
+  },
+  inputError: {
+    borderColor:     colors.danger,
+    backgroundColor: colors.danger + '10',
+  },
+  inputWithIcon: {
+    paddingRight: spacing['3xl'],
+  },
+  passwordRow: {
+    position: 'relative',
+  },
+  eyeIconBtn: {
+    position:       'absolute',
+    right:          spacing.base,
+    top:            0,
+    bottom:         0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
   eye: { fontSize: 18 },
+  errorText: {
+    fontFamily: typography.fontRegular,
+    fontSize:   typography.xs,
+    color:      colors.danger,
+    marginTop:  spacing.xs,
+  },
 
   checklist: {
     backgroundColor: colors.bgSubtle,

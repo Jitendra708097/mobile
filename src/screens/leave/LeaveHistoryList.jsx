@@ -37,13 +37,16 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
 
   const cancelSheetRef = useRef(null);  // ✅ correct — useRef from 'react'
 
-  useEffect( async() => { 
-    try {
-          await fetchHistory(1,true);
-    } catch (error) {
-      console.error('Error: ',error);
-    }
-   }, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchHistory(1, true);
+      } catch (error) {
+        console.error('Error: ', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const fetchHistory = async (pageNum = 1, reset = false) => {
     if (isLoading) return;

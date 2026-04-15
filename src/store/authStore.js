@@ -16,7 +16,6 @@ const useAuthStore = create((set, get) => ({
   refreshToken: null,
   isAuthenticated: false,
   isLoading: true,
-  pendingPassword: null,
   error: null,
 
   hydrate: async () => {
@@ -72,8 +71,10 @@ const useAuthStore = create((set, get) => ({
         refreshToken: data.refreshToken,
         isAuthenticated: true,
         isLoading: false,
-        pendingPassword: password,
       });
+
+      // ✅ SECURITY FIX: Store password temporarily in secure storage, not in Zustand
+      await SecureStore.setItemAsync('_tempPassword', password);
 
       return { success: true, employee: data.employee };
     } catch (error) {
@@ -87,8 +88,15 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
+      // ✅ SECURITY FIX: Retrieve from secure storage, not Zustand
+      const currentPassword = await SecureStore.getItemAsync('_tempPassword');
+
+      if (!currentPassword) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
       const data = await changePasswordRequest({
-        currentPassword: get().pendingPassword,
+        currentPassword,
         newPassword,
       });
       const updatedEmployee = {
@@ -99,11 +107,12 @@ const useAuthStore = create((set, get) => ({
       };
 
       await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
+      // ✅ SECURITY FIX: Clear temporary password after use
+      await SecureStore.deleteItemAsync('_tempPassword');
 
       set({
         employee: updatedEmployee,
         user: updatedEmployee,
-        pendingPassword: null,
         isLoading: false,
       });
 
@@ -164,6 +173,8 @@ const useAuthStore = create((set, get) => ({
       await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
+      // ✅ SECURITY FIX: Also clear temporary password
+      await SecureStore.deleteItemAsync('_tempPassword');
 
       set({
         employee: null,
@@ -172,7 +183,6 @@ const useAuthStore = create((set, get) => ({
         refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
-        pendingPassword: null,
         error: null,
       });
     }
@@ -182,6 +192,8 @@ const useAuthStore = create((set, get) => ({
     await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
+    // ✅ SECURITY FIX: Also clear temporary password
+    await SecureStore.deleteItemAsync('_tempPassword');
 
     set({
       employee: null,
@@ -189,7 +201,6 @@ const useAuthStore = create((set, get) => ({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
-      pendingPassword: null,
       error: null,
     });
   },
