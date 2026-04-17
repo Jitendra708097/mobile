@@ -7,6 +7,8 @@ import {
   loginRequest,
   logoutRequest,
   changePasswordRequest,
+  forgotPasswordRequest,
+  resetPasswordRequest,
 } from '../services/authService.js';
 
 const useAuthStore = create((set, get) => ({
@@ -145,6 +147,42 @@ const useAuthStore = create((set, get) => ({
       });
 
       return { success: true };
+    } catch (error) {
+      const message = parseError(error);
+      set({ error: message, isLoading: false });
+      return { success: false, error: message };
+    }
+  },
+
+  forgotPassword: async (email) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const data = await forgotPasswordRequest({
+        email: String(email).trim().toLowerCase(),
+      });
+
+      set({ isLoading: false });
+      return { success: true, ...data };
+    } catch (error) {
+      const message = parseError(error);
+      set({ error: message, isLoading: false });
+      return { success: false, error: message };
+    }
+  },
+
+  resetPassword: async (email, otp, newPassword) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const data = await resetPasswordRequest({
+        email: String(email).trim().toLowerCase(),
+        otp: String(otp).trim(),
+        newPassword,
+      });
+
+      set({ isLoading: false });
+      return { success: true, ...data };
     } catch (error) {
       const message = parseError(error);
       set({ error: message, isLoading: false });

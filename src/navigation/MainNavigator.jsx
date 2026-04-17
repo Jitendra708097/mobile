@@ -23,6 +23,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }     from '@react-navigation/stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen           from '../screens/home/HomeScreen.jsx';
 import HistoryScreen        from '../screens/history/HistoryScreen.jsx';
@@ -97,7 +98,10 @@ const bellStyles = StyleSheet.create({
 });
 
 // ── Bottom Tab Navigator ──────────────────────────────────────────────────────
-const TabNavigator = () => (
+const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
+  return (
   <Tab.Navigator
     screenOptions={({ route, navigation }) => ({
       headerStyle: {
@@ -115,10 +119,11 @@ const TabNavigator = () => (
         backgroundColor: colors.bgSurface,
         borderTopColor:  colors.border,
         borderTopWidth:  1,
-        height:          60,
-        paddingBottom:   8,
+        height:          60 + Math.max(insets.bottom, 8),
+        paddingBottom:   Math.max(insets.bottom, 8),
         paddingTop:      6,
       },
+      tabBarHideOnKeyboard: true,
       tabBarActiveTintColor:   colors.accent,
       tabBarInactiveTintColor: colors.textMuted,
       tabBarLabelStyle: {
@@ -154,7 +159,8 @@ const TabNavigator = () => (
       options={{ title: 'My Profile', tabBarLabel: 'Profile' }}
     />
   </Tab.Navigator>
-);
+  );
+};
 
 // ── Regularisation wrapper — lets the modal work as a stack screen ────────────
 const RegularisationScreenWrapper = ({ route, navigation }) => (

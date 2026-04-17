@@ -7,7 +7,7 @@
  *              Called by: AuthNavigator (initial screen).
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   KeyboardAvoidingView, Platform, StyleSheet, TextInput,
@@ -22,7 +22,7 @@ import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { validateEmail, validateLoginPassword } from '../../utils/validators.js';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const login     = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
   const storeErr  = useAuthStore((s) => s.error);
@@ -34,6 +34,12 @@ const LoginScreen = ({ navigation }) => {
   const [errors,   setErrors]   = useState({});
 
   const passwordRef = useRef(null);
+
+  useEffect(() => {
+    if (route?.params?.email) {
+      setEmail(route.params.email);
+    }
+  }, [route?.params?.email]);
 
   const validate = () => {
     const e = {};
@@ -67,17 +73,14 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
     
-    if (employee.isFirstLogin) {
+    if (employee.isFirstLogin && navigation?.replace) {
       navigation.replace('SetPassword');
       return;
     }
-    if (!employee.faceEnrolled) {
+    if (!employee.faceEnrolled && navigation?.replace) {
       navigation.replace('FaceEnroll');
       return;
     }
-    
-    // User is fully set up, navigate to main app
-    navigation.replace('Tabs');
   };
 
   return (
@@ -139,7 +142,7 @@ const LoginScreen = ({ navigation }) => {
             </View>
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
-            <TouchableOpacity style={styles.forgotRow}>
+            <TouchableOpacity style={styles.forgotRow} onPress={() => navigation?.navigate?.('ForgotPassword')}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
@@ -281,11 +284,12 @@ const styles = StyleSheet.create({
     alignItems:    'flex-end',
     marginTop:     -spacing.sm,
     marginBottom:  spacing.base,
+    paddingTop:    18,
   },
   forgotText: {
     fontFamily: typography.fontMedium,
     fontSize:   typography.sm,
-    color:      colors.textMuted,
+    color:      colors.accent,
   },
   loginBtn: {
     marginTop: spacing.sm,

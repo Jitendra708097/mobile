@@ -101,15 +101,7 @@ const FaceEnrollScreen = ({ navigation }) => {
       });
 
       await pollEnrollmentStatus();
-      // Navigate after successful enrollment and status confirmed
-      if (navigation) {
-        setStatusMsg('Enrollment complete');
-        setTimeout(() => {
-          if (navigation) {
-            navigation.replace('Tabs');
-          }
-        }, 800);
-      }
+      setStatusMsg('Enrollment complete');
     } catch (error) {
       setIsUploading(false);
       setIsCapturing(false);

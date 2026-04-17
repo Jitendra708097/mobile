@@ -9,10 +9,11 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Switch, StyleSheet, AsyncStorage,
+  Switch, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import useAuthStore        from '../../store/authStore.js';
 import AppButton           from '../../components/common/AppButton.jsx';
@@ -74,7 +75,7 @@ const ProfileScreen = ({ navigation }) => {
         {/* Avatar + Name */}
         <View style={styles.avatarBlock}>
           <Avatar name={user?.name} size={72} />
-          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.name}>{user?.name || user?.email?.split('@')?.[0] || 'Employee'}</Text>
           <Text style={styles.empCode}>{user?.employeeCode}</Text>
           <View style={styles.badgeRow}>
             <View style={styles.roleBadge}>

@@ -14,6 +14,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
+  if (config.skipAuth) {
+    return config;
+  }
+
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
 
   if (token) {
@@ -27,6 +31,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    if (originalRequest?.skipAuth) {
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

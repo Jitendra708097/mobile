@@ -1,9 +1,7 @@
 import api from '../api/axiosInstance.js';
 
 export async function loginRequest(payload) {
-  console.log("Hello");
-  const response = await api.post('/auth/login', payload);
-  console.log(response);
+  const response = await api.post('/auth/login', payload, { skipAuth: true });
   return response.data.data;
 }
 
@@ -19,5 +17,15 @@ export async function logoutRequest(refreshToken) {
 
 export async function changePasswordRequest(payload) {
   const response = await api.post('/auth/change-password', payload);
+  return response.data.data;
+}
+
+export async function forgotPasswordRequest(payload) {
+  const response = await api.post('/auth/forgot-password', payload, { skipAuth: true });
+  return response.data.data;
+}
+
+export async function resetPasswordRequest(payload) {
+  const response = await api.post('/auth/reset-password', payload, { skipAuth: true });
   return response.data.data;
 }

@@ -95,6 +95,8 @@ const useAttendanceStore = create((set, get) => ({
       set({
         buttonState: BUTTON_STATES.CHECKED_IN,
         openSession: data.session,
+        todayStatus: data.attendanceStatus || 'present',
+        firstCheckInTime: data.session?.checkInTime || get().firstCheckInTime,
         sessionsToday: get().sessionsToday + 1,
         selectedDeviceException: null,
         isLoading: false,

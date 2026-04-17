@@ -18,7 +18,7 @@
  *              Called by: App root (index.js / AppEntry).
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -36,20 +36,24 @@ import useAppState              from '../hooks/useAppState.js';
 
 const AppNavigator = () => {
   const hydrate        = useAuthStore((s) => s.hydrate);
-  const isLoading      = useAuthStore((s) => s.isLoading);
   const isAuthenticated= useAuthStore((s) => s.isAuthenticated);
   const hydrateQueue   = useOfflineQueueStore((s) => s.hydrate);
   const addNotification= useNotificationStore((s) => s.addIncomingNotification);
+  const [isBooting, setIsBooting] = useState(true);
 
   // Boot sequence
   useEffect(() => {
     const boot = async () => {
-      await hydrate();
-      await hydrateQueue();
+      try {
+        await hydrate();
+        await hydrateQueue();
 
-      // Setup push notifications
-      const deviceId = await getDeviceId();
-      await setupPushNotifications(deviceId);
+        // Setup push notifications
+        const deviceId = await getDeviceId();
+        await setupPushNotifications(deviceId);
+      } finally {
+        setIsBooting(false);
+      }
     };
     boot();
   }, []);
@@ -72,7 +76,7 @@ const AppNavigator = () => {
   useAppState();
 
   // Loading screen while checking stored tokens
-  if (isLoading) {
+  if (isBooting) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.accent} />

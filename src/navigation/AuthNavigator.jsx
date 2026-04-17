@@ -12,6 +12,8 @@ import LoginScreen       from '../screens/auth/LoginScreen.jsx';
 import { colors }       from '../theme/colors.js';
 import SetPasswordScreen from '../screens/auth/SetPasswordScreen.jsx';
 import FaceEnrollScreen  from '../screens/auth/FaceEnrollScreen.jsx';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen.jsx';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen.jsx';
 
 const Stack = createStackNavigator();
 
@@ -24,6 +26,8 @@ const AuthNavigator = () => (
     }}
   >
     <Stack.Screen name="Login"       component={LoginScreen}       />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     <Stack.Screen name="SetPassword" component={SetPasswordScreen} />
     <Stack.Screen
       name="FaceEnroll"

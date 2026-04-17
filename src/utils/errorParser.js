@@ -23,6 +23,13 @@ const ERROR_MESSAGES = {
   AUTH_007: 'Too many login attempts. Please wait 15 minutes.',
   AUTH_008: 'Password must be changed on first login.',
   AUTH_009: 'This device is not registered. Contact your admin to approve this device.',
+  AUTH_012: 'Please enter your email address to continue.',
+  AUTH_013: 'Please enter a valid OTP and a new password.',
+  AUTH_014: 'The OTP is invalid or expired. Request a new code and try again.',
+  AUTH_015: 'Password reset email is not configured on the server.',
+  AUTH_016: 'Too many reset requests. Please wait a few minutes and try again.',
+  AUTH_017: 'Too many reset attempts. Please wait a few minutes and try again.',
+  AUTH_018: 'Please wait a minute before requesting another OTP.',
 
   // ─── Validation ────────────────────────────────────────────────────────────
   VAL_001: 'Please fill in all required fields.',
@@ -40,14 +47,15 @@ const ERROR_MESSAGES = {
   ATT_002: 'Attendance already marked for today.',
   ATT_003: 'You already have an open session. Please check out first.',
   ATT_004: 'Please wait for the cooldown period to finish before checking in again.',
-  ATT_005: 'You have reached the maximum check-in sessions for today.',
-  ATT_006: 'No open session found. Please check in first.',
-  ATT_007: 'Minimum session time not met. You need at least 30 minutes per session.',
+  ATT_005: 'No open session found. Please check in first.',
+  ATT_006: 'No checkout is available to undo.',
+  ATT_007: 'Undo window has expired. Checkout is final.',
   ATT_008: 'Challenge expired. Please start the check-in process again.',
   ATT_009: 'Invalid challenge token. Please try again.',
   ATT_010: 'Challenge timed out. Please try again.',
   ATT_011: 'Request timestamp is invalid. Please check your phone clock.',
   ATT_012: 'Undo window has expired. Checkout is final.',
+  ATT_013: 'Invalid challenge token. Please start again.',
 
   // ─── Face ──────────────────────────────────────────────────────────────────
   FACE_001: 'Face verification failed. Please try again in good lighting.',
