@@ -2,13 +2,9 @@ import { create } from 'zustand';
 import { parseError } from '../utils/errorParser.js';
 import { BUTTON_STATES, SESSION } from '../utils/constants.js';
 import { getDeviceId } from '../services/deviceService.js';
-import {
-  requestAttendanceChallenge,
-  getTodayAttendanceStatus,
-  checkInRequest,
-  checkOutRequest,
-  undoCheckoutRequest,
-} from '../services/attendanceService.js';
+import { getVerifiedLocation } from '../services/locationService.js';
+import { isInsidePolygon } from '../utils/geofenceUtils.js';
+import { requestAttendanceChallenge, getTodayAttendanceStatus, checkInRequest, checkOutRequest, undoCheckoutRequest, getBranchGeofence } from '../services/attendanceService.js';
 
 const useAttendanceStore = create((set, get) => ({
   buttonState: BUTTON_STATES.CHECK_IN,
@@ -26,6 +22,11 @@ const useAttendanceStore = create((set, get) => ({
   error: null,
   offlineQueue: [],
   selectedDeviceException: null,
+  // Geofencing state
+  branchPolygon: null,
+  insidePremise: false,
+  currentLocation: null,
+  premiseMonitoringInterval: null,
 
   syncWithServer: async () => {
     if (get().isSyncing) {
@@ -64,11 +65,20 @@ const useAttendanceStore = create((set, get) => ({
     }
   },
 
-  checkIn: async ({ selfieBase64, location, challengeToken, isOnline }) => {
+  checkIn: async ({ selfieBase64, faceEmbedding, location, challengeToken, isOnline }) => {
     set({ isLoading: true, error: null });
 
     if (!isOnline) {
       const message = 'Internet connection is required for secure attendance check-in.';
+      set({ isLoading: false, error: message });
+      return { success: false, error: message };
+    }
+
+    // Pre-check: Verify user is inside premise
+    const insidePremise = await get().checkPremiseStatus();
+    console.log("is: ",insidePremise);
+    if (!insidePremise) {
+      const message = '❌ You are outside office premise. Please move inside to check-in.';
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
@@ -81,7 +91,7 @@ const useAttendanceStore = create((set, get) => ({
         captureTimestamp: location.timestamp || Date.now(),
         deviceId,
         selfieBase64,
-        faceEmbedding: null,
+        faceEmbedding: Array.isArray(faceEmbedding) ? faceEmbedding : null,
         lat: location.latitude,
         lng: location.longitude,
         accuracy: location.accuracy,
@@ -177,6 +187,93 @@ const useAttendanceStore = create((set, get) => ({
   clearError: () => set({ error: null }),
   setLoading: (value) => set({ isLoading: value }),
   setSelectedDeviceException: (value) => set({ selectedDeviceException: value }),
+
+  // ── Geofencing Methods ──────────────────────────────────────────────────
+  /**
+   * Fetch branch geofence polygon from server
+   */
+  fetchBranchGeofence: async () => {
+    try {
+      const data = await getBranchGeofence();
+      console.log("Data: ",data);
+      if (data?.polygon) {
+        set({ branchPolygon: data.polygon });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to fetch branch geofence:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Check if user's current location is inside premise polygon
+   * Updates state and returns boolean
+   */
+  checkPremiseStatus: async () => {
+    try {
+      const branchPolygon = get().branchPolygon;
+      if (!branchPolygon || branchPolygon.length < 3) {
+        console.warn('No valid branch polygon available');
+        return false;
+      }
+
+      const location = await getVerifiedLocation();
+      if (!location) {
+        console.warn('Failed to get verified location');
+        return false;
+      }
+
+      const inside = isInsidePolygon(
+        { lat: location.latitude, lng: location.longitude },
+        branchPolygon
+      );
+
+      set({
+        insidePremise: inside,
+        currentLocation: {
+          lat: location.latitude,
+          lng: location.longitude,
+          accuracy: location.accuracy,
+        },
+      });
+
+      return inside;
+    } catch (error) {
+      console.error('Premise check failed:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Start periodic premise monitoring (every 5 seconds)
+   * Stores interval ID for cleanup
+   */
+  startPremiseMonitoring: () => {
+    // Prevent multiple intervals
+    if (get().premiseMonitoringInterval) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      get().checkPremiseStatus();
+    }, 5000);
+
+    set({ premiseMonitoringInterval: intervalId });
+    return intervalId;
+  },
+
+  /**
+   * Stop premise monitoring and clear interval
+   */
+  stopPremiseMonitoring: () => {
+    const intervalId = get().premiseMonitoringInterval;
+    if (intervalId) {
+      clearInterval(intervalId);
+      set({ premiseMonitoringInterval: null });
+    }
+  },
 }));
 
 export default useAttendanceStore;

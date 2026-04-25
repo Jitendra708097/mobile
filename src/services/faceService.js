@@ -21,6 +21,130 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ACCURATE_OPTIONS, FAST_OPTIONS } from '../utils/constants';
 
+const EMBEDDING_OPTIONS = {
+  performanceMode: 'accurate',
+  landmarkMode: 'all',
+  contourMode: 'all',
+  classificationMode: 'all',
+  minFaceSize: 0.15,
+  trackingEnabled: false,
+};
+
+const LANDMARK_ORDER = [
+  'leftEar',
+  'rightEar',
+  'leftEye',
+  'rightEye',
+  'noseBase',
+  'leftCheek',
+  'rightCheek',
+  'mouthLeft',
+  'mouthRight',
+  'mouthBottom',
+];
+
+const CONTOUR_SPECS = [
+  ['face', 12],
+  ['leftEye', 4],
+  ['rightEye', 4],
+  ['noseBridge', 4],
+  ['noseBottom', 4],
+  ['upperLipTop', 4],
+  ['lowerLipBottom', 4],
+  ['leftEyebrowTop', 3],
+  ['rightEyebrowTop', 3],
+  ['leftEyebrowBottom', 3],
+  ['rightEyebrowBottom', 3],
+  ['upperLipBottom', 3],
+  ['lowerLipTop', 3],
+];
+
+const roundEmbeddingValue = (value) => {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Number(value.toFixed(6));
+};
+
+const normalizePoint = (point, frame) => {
+  if (!point || !frame?.width || !frame?.height) {
+    return [0, 0];
+  }
+
+  const x = (Number(point.x) - Number(frame.left || 0)) / Number(frame.width);
+  const y = (Number(point.y) - Number(frame.top || 0)) / Number(frame.height);
+
+  return [roundEmbeddingValue(x), roundEmbeddingValue(y)];
+};
+
+const sampleContourPoints = (points = [], targetCount = 0) => {
+  if (targetCount <= 0) {
+    return [];
+  }
+
+  if (!Array.isArray(points) || points.length === 0) {
+    return Array.from({ length: targetCount }, () => null);
+  }
+
+  if (points.length === 1) {
+    return Array.from({ length: targetCount }, () => points[0]);
+  }
+
+  return Array.from({ length: targetCount }, (_, index) => {
+    const ratio = targetCount === 1 ? 0 : index / (targetCount - 1);
+    const sampledIndex = Math.min(
+      points.length - 1,
+      Math.max(0, Math.round(ratio * (points.length - 1)))
+    );
+
+    return points[sampledIndex];
+  });
+};
+
+export const buildFaceEmbedding = (face) => {
+  const frame = face?.frame;
+
+  if (!frame?.width || !frame?.height) {
+    return null;
+  }
+
+  const embedding = [];
+
+  LANDMARK_ORDER.forEach((landmarkType) => {
+    const point = face?.landmarks?.[landmarkType]?.position || null;
+    embedding.push(...normalizePoint(point, frame));
+  });
+
+  CONTOUR_SPECS.forEach(([contourType, sampleCount]) => {
+    const contourPoints = face?.contours?.[contourType]?.points || [];
+    const sampled = sampleContourPoints(contourPoints, sampleCount);
+
+    sampled.forEach((point) => {
+      embedding.push(...normalizePoint(point, frame));
+    });
+  });
+
+  if (embedding.length !== 128) {
+    return null;
+  }
+
+  return embedding;
+};
+
+export const extractFaceEmbedding = async (imageUri) => {
+  try {
+    const faces = await FaceDetection.detect(imageUri, EMBEDDING_OPTIONS);
+
+    if (!faces || faces.length !== 1) {
+      return null;
+    }
+
+    return buildFaceEmbedding(faces[0]);
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Detect all faces in a local image URI.

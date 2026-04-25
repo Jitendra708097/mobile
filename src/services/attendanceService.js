@@ -25,3 +25,12 @@ export async function undoCheckoutRequest() {
   const response = await api.post(API_ROUTES.CHECKOUT_UNDO);
   return response.data.data;
 }
+
+/**
+ * Fetch current branch geofence polygon
+ * @returns {Promise<{geo_fence_polygons: Array}>}
+ */
+export async function getBranchGeofence() {
+  const response = await api.get('/branches/current/geofence');
+  return response.data.data;
+}

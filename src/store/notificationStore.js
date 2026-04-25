@@ -8,12 +8,7 @@
 
 import { create } from 'zustand';
 import { parseError } from '../utils/errorParser.js';
-import {
-  fetchNotifications,
-  fetchUnreadCount,
-  markAllNotificationsRead,
-  markNotificationsRead,
-} from '../services/notificationService.js';
+import { fetchNotifications, fetchUnreadCount, markAllNotificationsRead, markNotificationsRead } from '../services/notificationService.js';
 
 const useNotificationStore = create((set, get) => ({
   // ─── State ─────────────────────────────────────────────────────────────────

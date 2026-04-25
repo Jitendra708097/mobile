@@ -2,14 +2,9 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { parseError } from '../utils/errorParser.js';
 import { getDevicePayload } from '../services/deviceService.js';
+import { getFaceEnrollmentStatusRequest } from '../services/faceApiService.js';
 import { STORAGE_KEYS } from '../utils/constants.js';
-import {
-  loginRequest,
-  logoutRequest,
-  changePasswordRequest,
-  forgotPasswordRequest,
-  resetPasswordRequest,
-} from '../services/authService.js';
+import { loginRequest, logoutRequest, changePasswordRequest, forgotPasswordRequest, resetPasswordRequest } from '../services/authService.js';
 
 const useAuthStore = create((set, get) => ({
   employee: null,
@@ -198,6 +193,35 @@ const useAuthStore = create((set, get) => ({
 
     await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
     set({ employee: updatedEmployee, user: updatedEmployee });
+  },
+
+  syncFaceEnrollmentStatus: async () => {
+    const currentEmployee = get().employee;
+
+    if (!get().isAuthenticated || !currentEmployee?.id) {
+      return { synced: false };
+    }
+
+    try {
+      const status = await getFaceEnrollmentStatusRequest(currentEmployee.id);
+      const nextFaceEnrolled = Boolean(status?.enrolled);
+
+      if (currentEmployee.faceEnrolled === nextFaceEnrolled) {
+        return { synced: true, faceEnrolled: nextFaceEnrolled };
+      }
+
+      const updatedEmployee = {
+        ...currentEmployee,
+        faceEnrolled: nextFaceEnrolled,
+      };
+
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedEmployee));
+      set({ employee: updatedEmployee, user: updatedEmployee });
+
+      return { synced: true, faceEnrolled: nextFaceEnrolled };
+    } catch (error) {
+      return { synced: false, error: parseError(error) };
+    }
   },
 
   logout: async () => {

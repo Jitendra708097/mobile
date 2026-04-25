@@ -1,9 +1,5 @@
 import { create } from 'zustand';
-import {
-  loadOfflineQueue,
-  saveOfflineQueue,
-  clearOfflineQueue,
-} from '../services/offlineService.js';
+import { loadOfflineQueue, saveOfflineQueue, clearOfflineQueue } from '../services/offlineService.js';
 
 const useOfflineQueueStore = create((set, get) => ({
   queue: [],

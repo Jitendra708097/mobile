@@ -18,6 +18,8 @@ const useNetworkStatus = () => {
   useEffect(() => {
     // Get initial state
     NetInfo.fetch().then((state) => {
+      console.log("Connection type", state.type);
+      console.log("Is connected?", state.isConnected);
       setIsOnline(Boolean(state.isConnected && state.isInternetReachable));
     });
 

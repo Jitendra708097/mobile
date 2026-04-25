@@ -44,7 +44,7 @@ const ERROR_MESSAGES = {
 
   // ─── Attendance ────────────────────────────────────────────────────────────
   ATT_001: 'No active shift found for today.',
-  ATT_002: 'Attendance already marked for today.',
+  ATT_002: 'Unable to complete attendance action. Please refresh and try again.',
   ATT_003: 'You already have an open session. Please check out first.',
   ATT_004: 'Please wait for the cooldown period to finish before checking in again.',
   ATT_005: 'No open session found. Please check in first.',
