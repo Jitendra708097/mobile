@@ -4,7 +4,8 @@ import { parseError } from '../utils/errorParser.js';
 import { getDevicePayload } from '../services/deviceService.js';
 import { getFaceEnrollmentStatusRequest } from '../services/faceApiService.js';
 import { STORAGE_KEYS } from '../utils/constants.js';
-import { loginRequest, logoutRequest, changePasswordRequest, forgotPasswordRequest, resetPasswordRequest } from '../services/authService.js';
+import { loginRequest, logoutRequest, changePasswordRequest, forgotPasswordRequest, resetPasswordRequest, refreshRequest } from '../services/authService.js';
+import { deregisterTokenWithBackend, getFCMToken } from '../services/notificationService.js';
 
 const useAuthStore = create((set, get) => ({
   employee: null,
@@ -22,11 +23,28 @@ const useAuthStore = create((set, get) => ({
       const userData = await SecureStore.getItemAsync(STORAGE_KEYS.USER_DATA);
 
       if (accessToken && refreshToken && userData) {
+        let nextAccessToken = accessToken;
+        let nextRefreshToken = refreshToken;
+        let nextUser = JSON.parse(userData);
+
+        try {
+          const refreshed = await refreshRequest(refreshToken);
+          nextAccessToken = refreshed.accessToken || nextAccessToken;
+          nextRefreshToken = refreshed.refreshToken || nextRefreshToken;
+          nextUser = refreshed.employee ? { ...nextUser, ...refreshed.employee } : nextUser;
+
+          await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, nextAccessToken);
+          await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, nextRefreshToken);
+          await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(nextUser));
+        } catch (error) {
+          // Keep cached profile if refresh is temporarily unavailable.
+        }
+
         set({
-          employee: JSON.parse(userData),
-          user: JSON.parse(userData),
-          accessToken,
-          refreshToken,
+          employee: nextUser,
+          user: nextUser,
+          accessToken: nextAccessToken,
+          refreshToken: nextRefreshToken,
           isAuthenticated: true,
           isLoading: false,
         });
@@ -227,6 +245,8 @@ const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      const fcmToken = await getFCMToken();
+      await deregisterTokenWithBackend(fcmToken);
 
       if (refreshToken) {
         await logoutRequest(refreshToken).catch(() => {});

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -129,7 +130,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
-            <Text style={styles.heroIcon}>{otpSent ? 'OTP' : '@'}</Text>
+            <Ionicons
+              name={otpSent ? 'keypad-outline' : 'mail-outline'}
+              size={44}
+              color={colors.accent}
+              style={styles.heroIcon}
+            />
             <Text style={styles.title}>{otpSent ? 'Enter OTP' : 'Reset Your Password'}</Text>
             <Text style={styles.subtitle}>
               {otpSent
@@ -151,6 +157,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 setSuccessMessage('');
               }}
               placeholder="you@company.com"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -167,6 +174,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     setLocalError('');
                   }}
                   placeholder="6-digit code"
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="number-pad"
                   maxLength={6}
                   style={[styles.input, styles.otpInput]}
@@ -181,11 +189,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
                       setLocalError('');
                     }}
                     placeholder="Min. 8 characters"
+                    placeholderTextColor={colors.textSecondary}
                     secureTextEntry={!showPassword}
                     style={[styles.input, styles.inputWithIcon]}
                   />
                   <TouchableOpacity onPress={() => setShowPassword((value) => !value)} style={styles.eyeIconBtn}>
-                    <Text style={styles.eyeIcon}>{showPassword ? 'Hide' : 'Show'}</Text>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
 
@@ -198,6 +207,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                       setLocalError('');
                     }}
                     placeholder="Re-enter your password"
+                    placeholderTextColor={colors.textSecondary}
                     secureTextEntry={!showConfirmPassword}
                     style={[styles.input, styles.inputWithIcon]}
                   />
@@ -205,7 +215,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     onPress={() => setShowConfirmPassword((value) => !value)}
                     style={styles.eyeIconBtn}
                   >
-                    <Text style={styles.eyeIcon}>{showConfirmPassword ? 'Hide' : 'Show'}</Text>
+                    <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
 
@@ -262,10 +272,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
   heroIcon: {
-    fontSize: 44,
-    color: colors.accent,
     marginBottom: spacing.base,
-    fontFamily: typography.fontBold,
   },
   title: {
     fontFamily: typography.fontBold,
@@ -326,11 +333,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-  },
-  eyeIcon: {
-    fontFamily: typography.fontMedium,
-    fontSize: typography.sm,
-    color: colors.accent,
   },
   primaryButton: {
     marginTop: spacing.xl,

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -122,7 +123,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
-            <Text style={styles.heroIcon}>123456</Text>
+            <Ionicons name="keypad-outline" size={42} color={colors.accent} style={styles.heroIcon} />
             <Text style={styles.title}>Enter OTP</Text>
             <Text style={styles.subtitle}>
               Check your inbox, enter the 6-digit code, and choose a new password.
@@ -173,7 +174,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 style={[styles.input, styles.inputWithIcon]}
               />
               <TouchableOpacity onPress={() => setShowPassword((value) => !value)} style={styles.eyeIconBtn}>
-                <Text style={styles.eyeIcon}>{showPassword ? 'Hide' : 'Show'}</Text>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.accent} />
               </TouchableOpacity>
             </View>
 
@@ -190,7 +191,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 style={[styles.input, styles.inputWithIcon]}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword((value) => !value)} style={styles.eyeIconBtn}>
-                <Text style={styles.eyeIcon}>{showConfirmPassword ? 'Hide' : 'Show'}</Text>
+                <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.accent} />
               </TouchableOpacity>
             </View>
 
@@ -233,11 +234,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.base,
   },
   heroIcon: {
-    fontSize: 28,
-    color: colors.accent,
     marginBottom: spacing.base,
-    fontFamily: typography.fontBold,
-    letterSpacing: 2,
   },
   title: {
     fontFamily: typography.fontBold,
@@ -298,11 +295,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-  },
-  eyeIcon: {
-    fontFamily: typography.fontMedium,
-    fontSize: typography.sm,
-    color: colors.accent,
   },
   primaryButton: {
     marginTop: spacing.xl,

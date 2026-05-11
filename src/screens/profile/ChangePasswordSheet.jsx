@@ -8,28 +8,70 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
 
 import useAuthStore  from '../../store/authStore.js';
-import AppInput      from '../../components/common/AppInput.jsx';
 import AppButton     from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import {
-  validateNewPassword,
-  validatePasswordMatch,
-  getPasswordChecks,
-} from '../../utils/validators.js';
+import { validateNewPassword, validatePasswordMatch, getPasswordChecks } from '../../utils/validators.js';
 
 const CheckRow = ({ met, label }) => (
   <View style={styles.checkRow}>
-    <Text style={[styles.checkMark, met && styles.checkMarkMet]}>
-      {met ? '✓' : '○'}
-    </Text>
+    <View style={styles.checkMark}>
+      <Ionicons
+        name={met ? 'checkmark' : 'remove'}
+        size={13}
+        color={met ? colors.success : colors.textMuted}
+      />
+    </View>
     <Text style={[styles.checkLabel, met && styles.checkLabelMet]}>{label}</Text>
+  </View>
+);
+
+const PasswordField = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  showToggle = false,
+  isVisible = false,
+  onToggle,
+}) => (
+  <View style={styles.inputBlock}>
+    <Text style={styles.inputLabel}>{label}</Text>
+    <View style={styles.inputWrap}>
+      <BottomSheetTextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        secureTextEntry={secureTextEntry}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={[styles.textInput, showToggle && styles.textInputWithIcon]}
+      />
+      {showToggle ? (
+        <TouchableOpacity
+          onPress={onToggle}
+          style={styles.eyeButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={isVisible ? 'Hide password' : 'Show password'}
+        >
+          <Ionicons
+            name={isVisible ? 'eye-off-outline' : 'eye-outline'}
+            size={20}
+            color={colors.accent}
+          />
+        </TouchableOpacity>
+      ) : null}
+    </View>
   </View>
 );
 
@@ -91,41 +133,50 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
     <BottomSheet
       ref={sheetRef}
       index={-1}
-      snapPoints={['64%']}
+      snapPoints={['82%']}
       enablePanDownToClose
       onClose={reset}
+      keyboardBehavior="extend"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
     >
-      <BottomSheetView style={styles.content}>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>Change Password</Text>
 
         {success && (
           <View style={styles.successBox}>
-            <Text style={styles.successText}>✅ Password updated successfully!</Text>
+            <Text style={styles.successText}>Password updated successfully.</Text>
           </View>
         )}
 
         {error && <ErrorMessage message={error} />}
 
-        <AppInput
+        <PasswordField
           label="Current Password"
           value={current}
           onChangeText={(v) => { setCurrent(v); setError(''); }}
           secureTextEntry={!showCur}
           placeholder="Your current password"
-          rightIcon={<Text style={styles.eye}>{showCur ? '🙈' : '👁️'}</Text>}
-          onRightIconPress={() => setShowCur((p) => !p)}
+          showToggle
+          isVisible={showCur}
+          onToggle={() => setShowCur((p) => !p)}
         />
 
-        <AppInput
+        <PasswordField
           label="New Password"
           value={newPass}
           onChangeText={(v) => { setNewPass(v); setError(''); }}
           secureTextEntry={!showNew}
           placeholder="Min. 8 characters"
-          rightIcon={<Text style={styles.eye}>{showNew ? '🙈' : '👁️'}</Text>}
-          onRightIconPress={() => setShowNew((p) => !p)}
+          showToggle
+          isVisible={showNew}
+          onToggle={() => setShowNew((p) => !p)}
         />
 
         {/* Requirements */}
@@ -137,7 +188,7 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
           </View>
         )}
 
-        <AppInput
+        <PasswordField
           label="Confirm New Password"
           value={confirm}
           onChangeText={(v) => { setConfirm(v); setError(''); }}
@@ -159,7 +210,7 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
           variant="ghost"
           fullWidth
         />
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheet>
   );
 };
@@ -167,7 +218,7 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
 const styles = StyleSheet.create({
   sheetBg: { backgroundColor: colors.bgSurface },
   handle:  { backgroundColor: colors.border, width: 40 },
-  content: { padding: spacing.xl, paddingBottom: spacing['2xl'] },
+  content: { padding: spacing.xl, paddingBottom: 320 },
 
   title: {
     fontFamily:   typography.fontBold,
@@ -189,7 +240,41 @@ const styles = StyleSheet.create({
     color:      colors.success,
   },
 
-  eye: { fontSize: 18 },
+  inputBlock: {
+    marginBottom: spacing.base,
+  },
+  inputLabel: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.2,
+  },
+  inputWrap: {
+    position: 'relative',
+  },
+  textInput: {
+    minHeight: 52,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.bgSurface,
+    fontFamily: typography.fontRegular,
+    fontSize: typography.base,
+    color: colors.textPrimary,
+  },
+  textInputWithIcon: {
+    paddingRight: spacing['4xl'],
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: spacing.base,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
 
   checklist: {
     backgroundColor: colors.bgSubtle,
@@ -203,8 +288,7 @@ const styles = StyleSheet.create({
     alignItems:    'center',
     marginBottom:  3,
   },
-  checkMark:    { fontFamily: typography.fontBold, fontSize: typography.sm, color: colors.textMuted, marginRight: spacing.sm, width: 14 },
-  checkMarkMet: { color: colors.success },
+  checkMark:    { marginRight: spacing.sm, width: 14, alignItems: 'center' },
   checkLabel:   { fontFamily: typography.fontRegular, fontSize: typography.xs, color: colors.textMuted },
   checkLabelMet:{ color: colors.success },
 

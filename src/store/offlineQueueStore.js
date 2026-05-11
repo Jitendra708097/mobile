@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { loadOfflineQueue, saveOfflineQueue, clearOfflineQueue } from '../services/offlineService.js';
+import { syncAttendanceRequest } from '../services/attendanceService.js';
 
 const useOfflineQueueStore = create((set, get) => ({
   queue: [],
@@ -23,9 +24,23 @@ const useOfflineQueueStore = create((set, get) => ({
     }
 
     set({ isSyncing: true });
-    // Secure attendance currently requires live challenge, liveness,
-    // and geo validation, so offline replay is intentionally disabled.
-    set({ isSyncing: false });
+    try {
+      const result = await syncAttendanceRequest(queue);
+      const completedIds = new Set(
+        (result.results || [])
+          .filter((item) => item.status === 'synced' || item.status === 'duplicate' || item.status === 'conflict')
+          .map((item) => queue[item.index]?.clientRecordId)
+          .filter(Boolean)
+      );
+      const remaining = queue.filter((record) => !completedIds.has(record.clientRecordId));
+
+      set({ queue: remaining, isSyncing: false });
+      await saveOfflineQueue(remaining);
+      return result;
+    } catch (error) {
+      set({ isSyncing: false });
+      return null;
+    }
   },
 
   clearQueue: async () => {

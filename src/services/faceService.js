@@ -213,9 +213,11 @@ export const validateFaceQuality = async (photoUri) => {
  *   face?: Face
  * }>}
  */
-export const quickFaceCheck = async (imageUri) => {
+export const quickFaceCheck = async (imageUri, options = {}) => {
+  const { fast = true, allowClosedEyes = false } = options;
+
   try {
-    const faces = await detectFacesInImage(imageUri, true); // fast mode
+    const faces = await detectFacesInImage(imageUri, fast);
 
     if (!faces || faces.length === 0) return { valid: false, reason: 'No face detected. Please look at camera.' };
     if (faces.length > 1)            return { valid: false, reason: 'Multiple faces. Only you should be in frame.' };
@@ -227,7 +229,9 @@ export const quickFaceCheck = async (imageUri) => {
 
     const leftOpen  = face.leftEyeOpenProbability  ?? 1;
     const rightOpen = face.rightEyeOpenProbability ?? 1;
-    if (leftOpen < 0.4 || rightOpen < 0.4) return { valid: false, reason: 'Keep your eyes open.' };
+    if (!allowClosedEyes && (leftOpen < 0.4 || rightOpen < 0.4)) {
+      return { valid: false, reason: 'Keep your eyes open.' };
+    }
 
     return { valid: true, reason: '', face };
   } catch {
@@ -240,37 +244,45 @@ export const quickFaceCheck = async (imageUri) => {
  * Called per-snapshot during LivenessChallenge polling loop.
  *
  * @param {Face}   face      - Single ML Kit face object
- * @param {string} challenge - 'blink' | 'turn_left' | 'turn_right' | 'smile'
+ * @param {string} challenge - 'blink' | 'turn_left' | 'turn_right'
  * @returns {{ completed: boolean }}
  */
-export const detectChallengeCompletion = (face, challenge) => {
-  if (!face) return { completed: false };
+export const detectChallengeCompletion = (face, challenge, progress = {}) => {
+  if (!face) return { completed: false, progress };
 
   switch (challenge) {
     case 'blink': {
-      const leftClosed  = (face.leftEyeOpenProbability  ?? 1) < 0.3;
-      const rightClosed = (face.rightEyeOpenProbability ?? 1) < 0.3;
-      return { completed: leftClosed && rightClosed };
+      const leftOpenProbability = face.leftEyeOpenProbability ?? 1;
+      const rightOpenProbability = face.rightEyeOpenProbability ?? 1;
+      const eyesClearlyOpen = leftOpenProbability > 0.75 && rightOpenProbability > 0.75;
+      const eyesClosed = leftOpenProbability < 0.45 && rightOpenProbability < 0.45;
+
+      if (eyesClearlyOpen) {
+        progress.sawOpenEyes = true;
+      }
+
+      if (progress.sawOpenEyes && eyesClosed) {
+        progress.sawClosedEyes = true;
+      }
+
+      return { completed: Boolean(progress.sawClosedEyes && eyesClearlyOpen), progress };
     }
     case 'turn_left': {
       // rotationY positive = head turned left on front camera
-      return { completed: (face.rotationY ?? 0) > 20 };
+      return { completed: (face.rotationY ?? 0) > 18, progress };
     }
     case 'turn_right': {
       // rotationY negative = head turned right on front camera
-      return { completed: (face.rotationY ?? 0) < -20 };
-    }
-    case 'smile': {
-      return { completed: (face.smilingProbability ?? 0) > 0.7 };
+      return { completed: (face.rotationY ?? 0) < -18, progress };
     }
     default:
-      return { completed: false };
+      return { completed: false, progress };
   }
 };
 
 /**
  * Compress a selfie image for API upload.
- * Target: max 800px wide, 70 % quality JPEG, base64 encoded.
+ * Target: max 560px wide, 55 % quality JPEG, base64 encoded.
  *
  * @param {string} uri - local photo URI
  * @returns {Promise<{ uri: string, base64: string }>}
@@ -278,11 +290,11 @@ export const detectChallengeCompletion = (face, challenge) => {
 
 export const compressSelfie = async (uri) => {
   const context = ImageManipulator.ImageManipulator.manipulate(uri);
-  context.resize({ width: 800 });
+  context.resize({ width: 560 });
 
   const renderedImage = await context.renderAsync();
   const result = await renderedImage.saveAsync({
-    compress: 0.7,
+    compress: 0.55,
     format: ImageManipulator.SaveFormat.JPEG,
     base64: true,
   });

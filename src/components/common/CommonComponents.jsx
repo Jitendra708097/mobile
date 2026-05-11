@@ -6,10 +6,18 @@
  */
 
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
+
+const EMPTY_STATE_ICONS = {
+  R: 'calendar-clear-outline',
+  L: 'briefcase-outline',
+  N: 'notifications-outline',
+  i: 'information-circle-outline',
+};
 
 export const LoadingOverlay = ({ message = 'Loading...', subMessage }) => (
   <View style={loStyles.overlay}>
@@ -66,13 +74,16 @@ export const ErrorMessage = ({ message, style }) => {
   if (!message) return null;
   return (
     <View style={[emStyles.container, style]}>
-      <Text style={emStyles.text}>⚠ {message}</Text>
+      <Ionicons name="warning-outline" size={16} color={colors.danger} style={emStyles.icon} />
+      <Text style={emStyles.text}>{message}</Text>
     </View>
   );
 };
 
 const emStyles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: colors.dangerLight,
     borderRadius:    10,
     padding:         spacing.md,
@@ -80,7 +91,12 @@ const emStyles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.danger,
   },
+  icon: {
+    marginRight: spacing.xs,
+    marginTop: 1,
+  },
   text: {
+    flex: 1,
     fontFamily: typography.fontMedium,
     fontSize:   typography.sm,
     color:      colors.danger,
@@ -95,9 +111,15 @@ const emStyles = StyleSheet.create({
  * @description Centered empty state with emoji, title, and subtitle.
  *              Called by: HistoryScreen, LeaveHistoryList, NotificationsScreen.
  */
-export const EmptyState = ({ emoji = '📋', title, subtitle, style }) => (
+export const EmptyState = ({ icon = 'i', title, subtitle, style }) => (
   <View style={[esStyles.container, style]}>
-    <Text style={esStyles.emoji}>{emoji}</Text>
+    <View style={esStyles.iconCircle}>
+      <Ionicons
+        name={EMPTY_STATE_ICONS[icon] || icon || EMPTY_STATE_ICONS.i}
+        size={26}
+        color={colors.accent}
+      />
+    </View>
     <Text style={esStyles.title}>{title}</Text>
     {subtitle ? <Text style={esStyles.subtitle}>{subtitle}</Text> : null}
   </View>
@@ -111,9 +133,19 @@ const esStyles = StyleSheet.create({
     padding:        spacing['2xl'],
     minHeight:      200,
   },
-  emoji: {
-    fontSize:     48,
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.bgSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.base,
+  },
+  icon: {
+    fontFamily: typography.fontBold,
+    fontSize: typography.xl,
+    color: colors.accent,
   },
   title: {
     fontFamily: typography.fontSemiBold,
@@ -135,11 +167,11 @@ const esStyles = StyleSheet.create({
 
 /**
  * @module Avatar
- * @description Circle avatar displaying the first letter of a name.
- *              Used where profile photos are not available.
+ * @description Circle avatar displaying a profile photo when available,
+ *              with initials fallback.
  *              Called by: ProfileScreen, HomeScreen header, notification items.
  */
-export const Avatar = ({ name = '', size = 48, style }) => {
+export const Avatar = ({ name = '', uri, size = 48, style }) => {
   const initial = (name || 'U').charAt(0).toUpperCase();
   const fontSize = size * 0.4;
 
@@ -151,7 +183,15 @@ export const Avatar = ({ name = '', size = 48, style }) => {
         style,
       ]}
     >
+      {uri ? (
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
+        />
+      ) : (
       <Text style={[avStyles.initial, { fontSize }]}>{initial}</Text>
+      )}
     </View>
   );
 };
@@ -161,6 +201,7 @@ const avStyles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems:      'center',
     justifyContent:  'center',
+    overflow:        'hidden',
   },
   initial: {
     fontFamily: typography.fontBold,
@@ -199,7 +240,7 @@ export const OfflineBanner = ({ visible }) => {
   if (!visible) return null;
   return (
     <View style={obStyles.banner}>
-      <Text style={obStyles.text}>📡 Offline — Check-in will sync when connected</Text>
+      <Text style={obStyles.text}>Offline. Attendance will sync when connected.</Text>
     </View>
   );
 };

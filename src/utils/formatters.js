@@ -17,6 +17,18 @@ dayjs.extend(relativeTime);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const resolveTimezone = (tz) => {
+  const value = String(tz || '').trim();
+  return value && !['UTC', 'Etc/UTC', 'GMT'].includes(value) ? value : 'Asia/Kolkata';
+};
+
+const isIndiaTimezone = (tz) => ['Asia/Kolkata', 'Asia/Calcutta'].includes(resolveTimezone(tz));
+const parseUtcTime = (isoString) => dayjs.utc(isoString);
+const toDisplayTimezone = (isoString, tz = 'Asia/Kolkata') => {
+  const parsed = parseUtcTime(isoString);
+  return isIndiaTimezone(tz) ? parsed.add(330, 'minute') : parsed.tz(resolveTimezone(tz));
+};
+
 /**
  * Format a UTC ISO string to a local time string.
  * @param {string} isoString - UTC ISO date string
@@ -25,7 +37,7 @@ dayjs.extend(timezone);
  */
 export const formatTime = (isoString, tz = 'Asia/Kolkata') => {
   if (!isoString) return '--:--';
-  return dayjs(isoString).tz(tz).format('hh:mm A');
+  return toDisplayTimezone(isoString, tz).format('hh:mm A');
 };
 
 /**
@@ -36,7 +48,7 @@ export const formatTime = (isoString, tz = 'Asia/Kolkata') => {
  */
 export const formatDate = (isoString, tz = 'Asia/Kolkata') => {
   if (!isoString) return '—';
-  return dayjs(isoString).tz(tz).format('D MMM YYYY');
+  return toDisplayTimezone(isoString, tz).format('D MMM YYYY');
 };
 
 /**
@@ -47,7 +59,7 @@ export const formatDate = (isoString, tz = 'Asia/Kolkata') => {
  */
 export const formatDayDate = (isoString, tz = 'Asia/Kolkata') => {
   if (!isoString) return '—';
-  return dayjs(isoString).tz(tz).format('dddd, D MMM');
+  return toDisplayTimezone(isoString, tz).format('dddd, D MMM');
 };
 
 /**
@@ -94,7 +106,7 @@ export const formatCountdown = (totalSeconds) => {
  */
 export const formatSessionTimer = (startIsoString, tz = 'Asia/Kolkata') => {
   if (!startIsoString) return '0m';
-  const startMs = dayjs(startIsoString).tz(tz).valueOf();
+  const startMs = parseUtcTime(startIsoString).valueOf();
   const nowMs   = dayjs().valueOf();
   const diffMin = Math.floor((nowMs - startMs) / 60000);
   return formatDuration(diffMin);

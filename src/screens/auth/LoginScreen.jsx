@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView, Platform, StyleSheet, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import useAuthStore  from '../../store/authStore.js';
 import AppButton     from '../../components/common/AppButton.jsx';
@@ -97,7 +98,7 @@ const LoginScreen = ({ navigation, route }) => {
           {/* ── Logo ── */}
           <View style={styles.logoBlock}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoMark}>✓</Text>
+              <Ionicons name="checkmark-done" size={34} color={colors.textInverse} />
             </View>
             <Text style={styles.appName}>AttendEase</Text>
             <Text style={styles.tagline}>Employee Portal</Text>
@@ -115,6 +116,7 @@ const LoginScreen = ({ navigation, route }) => {
               value={email}
               onChangeText={(v) => { setEmail(v); setErrors((p) => ({ ...p, email: '' })); }}
               placeholder="you@company.com"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -131,13 +133,18 @@ const LoginScreen = ({ navigation, route }) => {
                 value={password}
                 onChangeText={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }}
                 placeholder="Your password"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPass}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
                 style={[styles.input, styles.inputWithIcon, errors.password && styles.inputError]}
               />
               <TouchableOpacity onPress={() => setShowPass((p) => !p)} style={styles.eyeIconBtn}>
-                <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
+                <Ionicons
+                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.accent}
+                />
               </TouchableOpacity>
             </View>
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -192,11 +199,6 @@ const styles = StyleSheet.create({
     boxShadow: '0px 8px 16px rgba(13, 115, 119, 0.3)',
     // Android
     elevation: 8,
-  },
-  logoMark: {
-    fontSize:   36,
-    color:      colors.textInverse,
-    fontFamily: typography.fontBold,
   },
   appName: {
     fontFamily:   typography.fontBold,
@@ -270,9 +272,6 @@ const styles = StyleSheet.create({
     bottom:         0,
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
-  },
-  eyeIcon: {
-    fontSize: 18,
   },
   errorText: {
     fontFamily: typography.fontRegular,

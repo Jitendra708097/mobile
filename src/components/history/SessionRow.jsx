@@ -44,7 +44,7 @@ const SessionRow = ({ session }) => {
         {/* Time range */}
         <View style={styles.timeRow}>
           <Text style={styles.time}>{formatTime(checkInTime)}</Text>
-          <Text style={styles.arrow}> → </Text>
+          <Text style={styles.arrow}> to </Text>
           <Text style={styles.time}>
             {isOpen ? <Text style={styles.openLabel}>Active</Text> : formatTime(checkOutTime)}
           </Text>
@@ -55,12 +55,12 @@ const SessionRow = ({ session }) => {
         <View style={styles.metaRow}>
           {checkInLat && checkInLng && (
             <Text style={styles.meta}>
-              📍 {checkInLat.toFixed(4)}, {checkInLng.toFixed(4)}
+              GPS {checkInLat.toFixed(4)}, {checkInLng.toFixed(4)}
             </Text>
           )}
           {faceMethod && (
             <Text style={styles.meta}>
-              {faceMethod === 'rekognition' ? '☁️ Cloud verify' : '📱 On-device'}
+              {faceMethod === 'rekognition' ? 'Cloud verification' : 'On-device verification'}
             </Text>
           )}
         </View>

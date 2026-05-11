@@ -11,9 +11,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 
 import api from '../../api/axiosInstance.js';
@@ -32,6 +33,7 @@ const HistoryScreen = ({ navigation }) => {
   const [attendanceMap,setMap]        = useState({});
   const [summary,     setSummary]     = useState({ present: 0, absent: 0, late: 0, onLeave: 0 });
   const [isLoading,   setLoading]     = useState(false);
+  const [isRefreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDetail,  setShowDetail]  = useState(false);
 
@@ -63,6 +65,15 @@ const HistoryScreen = ({ navigation }) => {
     }
   };
 
+  const refreshHistory = async () => {
+    setRefreshing(true);
+    try {
+      await fetchHistory();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleDayPress = (dateStr) => {
     const record = records.find((r) => r.date === dateStr);
     if (record) { setSelectedDay(record); setShowDetail(true); }
@@ -70,7 +81,7 @@ const HistoryScreen = ({ navigation }) => {
 
   const prevMonth = () => setMonth((m) => m.subtract(1, 'month'));
   const nextMonth = () => setMonth((m) => m.add(1, 'month'));
-  const canGoNext = month.isBefore(dayjs(), 'month') || month.isSame(dayjs(), 'month');
+  const canGoNext = month.isBefore(dayjs(), 'month');
 
   const SummaryStrip = () => (
     <View style={styles.strip}>
@@ -89,11 +100,11 @@ const HistoryScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       {/* Month picker */}
       <View style={styles.monthRow}>
         <TouchableOpacity onPress={prevMonth} style={styles.arrow}>
-          <Text style={styles.arrowText}>‹</Text>
+          <Ionicons name="chevron-back" size={26} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{formatMonthYear(month.toDate())}</Text>
         <TouchableOpacity
@@ -101,14 +112,32 @@ const HistoryScreen = ({ navigation }) => {
           style={styles.arrow}
           disabled={!canGoNext}
         >
-          <Text style={[styles.arrowText, !canGoNext && styles.arrowDim]}>›</Text>
+          <Ionicons name="chevron-forward" size={26} color={canGoNext ? colors.accent : colors.border} />
         </TouchableOpacity>
       </View>
+      {!month.isSame(dayjs(), 'month') && (
+        <TouchableOpacity style={styles.todayButton} onPress={() => setMonth(dayjs())}>
+          <Text style={styles.todayButtonText}>Back to Today</Text>
+        </TouchableOpacity>
+      )}
 
       <FlatList
         ListHeaderComponent={
           <>
             <SummaryStrip />
+            <View style={styles.legendRow}>
+              {[
+                ['Present', colors.success],
+                ['Absent', colors.danger],
+                ['Late', colors.warning],
+                ['Leave', colors.info],
+              ].map(([label, color]) => (
+                <View key={label} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: color }]} />
+                  <Text style={styles.legendText}>{label}</Text>
+                </View>
+              ))}
+            </View>
             <AttendanceCalendar
               month={month.toDate()}
               attendanceMap={attendanceMap}
@@ -128,7 +157,7 @@ const HistoryScreen = ({ navigation }) => {
         ListEmptyComponent={
           !isLoading && (
             <EmptyState
-              emoji="📅"
+              icon="R"
               title="No records this month"
               subtitle="Your attendance history will appear here"
             />
@@ -139,6 +168,7 @@ const HistoryScreen = ({ navigation }) => {
         }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: spacing['4xl'] }}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshHistory} />}
       />
 
       {/* FAB */}
@@ -148,7 +178,7 @@ const HistoryScreen = ({ navigation }) => {
           date: selectedDay?.date || undefined,
         })}
       >
-        <Text style={styles.fabText}>✎</Text>
+        <Ionicons name="create-outline" size={22} color={colors.textInverse} />
       </TouchableOpacity>
 
       {/* Day detail sheet */}
@@ -175,16 +205,23 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   arrow:    { padding: spacing.sm },
-  arrowText: {
-    fontFamily: typography.fontBold,
-    fontSize:   typography['2xl'],
-    color:      colors.accent,
-  },
-  arrowDim: { color: colors.border },
   monthLabel: {
     fontFamily: typography.fontSemiBold,
     fontSize:   typography.md,
     color:      colors.textPrimary,
+  },
+  todayButton: {
+    alignSelf: 'center',
+    marginVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.accentLight,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.xs,
+  },
+  todayButtonText: {
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.sm,
+    color: colors.accent,
   },
 
   strip: {
@@ -195,6 +232,29 @@ const styles = StyleSheet.create({
     marginBottom:    spacing.base,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.base,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
   },
   statBox:   { alignItems: 'center' },
   statNum: {
@@ -231,11 +291,6 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
     boxShadow:       '0px 6px 12px rgba(13, 115, 119, 0.3)',
     elevation:       8,
-  },
-  fabText: {
-    fontSize:   22,
-    color:      colors.textInverse,
-    lineHeight: 26,
   },
 });
 

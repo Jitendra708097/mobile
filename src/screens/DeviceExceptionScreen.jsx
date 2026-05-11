@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { getDeviceId } from '../services/deviceService.js';
-import { getMyDeviceExceptions } from '../services/deviceExceptionService.js';
+import { getMyDeviceExceptions, requestDeviceException } from '../services/deviceExceptionService.js';
 import useAttendanceStore from '../store/attendanceStore.js';
+import AppButton from '../components/common/AppButton.jsx';
 import { colors } from '../theme/colors.js';
 import { typography } from '../theme/typography.js';
 import { spacing } from '../theme/spacing.js';
@@ -13,7 +14,10 @@ export default function DeviceExceptionScreen() {
   const [exceptions, setExceptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const selectedException = useAttendanceStore((state) => state.selectedDeviceException);
   const setSelectedDeviceException = useAttendanceStore((state) => state.setSelectedDeviceException);
 
@@ -41,19 +45,93 @@ export default function DeviceExceptionScreen() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!deviceId || selectedException) {
+      return;
+    }
+
+    const now = Date.now();
+    const approvedException = exceptions.find(
+      (item) =>
+        item.status === 'approved' &&
+        item.tempDeviceId === deviceId &&
+        (!item.expiresAt || new Date(item.expiresAt).getTime() > now)
+    );
+
+    if (approvedException) {
+      setSelectedDeviceException(approvedException);
+    }
+  }, [deviceId, exceptions, selectedException, setSelectedDeviceException]);
+
+  const handleSubmitRequest = async () => {
+    const trimmedReason = reason.trim();
+
+    if (!deviceId) {
+      setError('Device ID is still loading. Please try again in a moment.');
+      return;
+    }
+
+    if (!trimmedReason) {
+      setError('Please add a reason for this device exception request.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await requestDeviceException({
+        tempDeviceId: deviceId,
+        reason: trimmedReason,
+      });
+      setReason('');
+      setSuccess('Request sent to admin for approval.');
+      await load(true);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Unable to send device exception request.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => load(true)} />}
       >
         <View style={styles.card}>
-          <Text style={styles.heading}>Forgot your phone?</Text>
+          <Text style={styles.heading}>Request Device Exception</Text>
           <Text style={styles.subheading}>
-            Show this temporary device id to your admin. Once approved, choose the approved exception below before check-in.
+            Send this temporary device id to admin for approval. Once approved, choose the approved exception below before marking attendance.
           </Text>
           <Text style={styles.label}>Temporary Device ID</Text>
           <Text style={styles.deviceId}>{deviceId || 'Loading...'}</Text>
+          <Text style={[styles.label, styles.reasonLabel]}>Reason</Text>
+          <TextInput
+            value={reason}
+            onChangeText={(value) => {
+              setReason(value);
+              setError('');
+              setSuccess('');
+            }}
+            placeholder="Example: My registered phone is unavailable today."
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            style={styles.reasonInput}
+          />
+          {success ? <Text style={styles.success}>{success}</Text> : null}
+          <AppButton
+            label="Send Request"
+            onPress={handleSubmitRequest}
+            loading={isSubmitting}
+            disabled={!deviceId || isSubmitting}
+            fullWidth
+            style={styles.submitButton}
+          />
         </View>
 
         <View style={styles.card}>
@@ -126,6 +204,30 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMono,
     fontSize: typography.base,
     color: colors.accent,
+  },
+  reasonLabel: {
+    marginTop: spacing.base,
+  },
+  reasonInput: {
+    minHeight: 92,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.bgSubtle,
+    fontFamily: typography.fontRegular,
+    fontSize: typography.base,
+    color: colors.textPrimary,
+  },
+  submitButton: {
+    marginTop: spacing.base,
+  },
+  success: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.sm,
+    color: colors.success,
+    marginTop: spacing.sm,
   },
   error: {
     fontFamily: typography.fontRegular,

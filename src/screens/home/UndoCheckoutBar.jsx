@@ -6,9 +6,10 @@
  *              Called by: HomeScreen (rendered when lastCheckout is set).
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import useAttendanceStore from '../../store/attendanceStore.js';
 import useCountdown       from '../../hooks/useCountdown.js';
@@ -24,6 +25,8 @@ import { SESSION }   from '../../utils/constants.js';
 const UndoCheckoutBar = ({ undoWindowEndsAt }) => {
   const undoCheckout = useAttendanceStore((s) => s.undoCheckout);
   const isLoading    = useAttendanceStore((s) => s.isLoading);
+  const insets = useSafeAreaInsets();
+  const [error, setError] = useState('');
 
   const totalSeconds = SESSION.UNDO_WINDOW_MINUTES * 60;
   const { formatted, isComplete } = useCountdown(undoWindowEndsAt, totalSeconds);
@@ -47,17 +50,21 @@ const UndoCheckoutBar = ({ undoWindowEndsAt }) => {
   if (isComplete) return null;
 
   const handleUndo = async () => {
+    setError('');
     const result = await undoCheckout();
     if (result.success) {
       translateY.value = withTiming(120, { duration: 250 });
+    } else {
+      setError(result.error || 'Undo failed. Please refresh attendance.');
     }
   };
 
   return (
-    <Animated.View style={[styles.bar, animStyle]}>
+    <Animated.View style={[styles.bar, { paddingBottom: spacing.base + Math.max(insets.bottom, 0) }, animStyle]}>
       <View style={styles.left}>
-        <Text style={styles.checkText}>Checked out ✅</Text>
+        <Text style={styles.checkText}>Checked out</Text>
         <Text style={styles.countdown}>Undo available: {formatted}</Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
       <TouchableOpacity
         onPress={handleUndo}
@@ -65,7 +72,7 @@ const UndoCheckoutBar = ({ undoWindowEndsAt }) => {
         style={styles.undoBtn}
         activeOpacity={0.8}
       >
-        <Text style={styles.undoBtnText}>Undo</Text>
+        <Text style={styles.undoBtnText}>{isLoading ? 'Undoing' : 'Undo'}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -99,6 +106,12 @@ const styles = StyleSheet.create({
     fontSize:   typography.sm,
     color:      colors.accent,
     marginTop:  2,
+  },
+  error: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.xs,
+    color: colors.dangerLight,
+    marginTop: spacing.xs,
   },
   undoBtn: {
     backgroundColor: colors.accentLight,

@@ -21,6 +21,7 @@ const STATUS_CONFIG = {
   on_leave:       { bg: colors.infoLight,    text: colors.info,     label: 'On Leave'   },
   holiday:        { bg: colors.accentLight,  text: colors.accent,   label: 'Holiday'    },
   weekend:        { bg: colors.bgSubtle,     text: colors.textMuted,label: 'Weekend'    },
+  incomplete:     { bg: colors.dangerLight,  text: colors.danger,   label: 'Incomplete' },
   overtime:       { bg: colors.accentLight,  text: colors.accent,   label: 'Overtime'   },
   not_marked:     { bg: colors.bgSubtle,     text: colors.textMuted,label: 'Not Marked' },
   late:           { bg: colors.warningLight, text: colors.warning,  label: 'Late'       },

@@ -12,8 +12,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {  useAnimatedStyle,  useSharedValue,  withRepeat,  withTiming,  Easing} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
@@ -28,25 +29,25 @@ export const GPS_STATUS = {
 
 const STATUS_CONFIG = {
   loading: {
-    icon:    '📡',
-    text:    'Getting your location...',
+    icon:    'locate-outline',
+    text:    'Checking location...',
     bg:      colors.bgSubtle,
     textColor: colors.textMuted,
   },
   inside: {
-    icon:    '✅',
-    text:    'Inside office premises',
+    icon:    'checkmark-circle-outline',
+    text:    'Location verified',
     bg:      colors.successLight,
     textColor: colors.success,
   },
   weak: {
-    icon:    '⚠️',
-    text:    'GPS signal weak — proceeding with flag',
+    icon:    'warning-outline',
+    text:    'Location verified with low accuracy',
     bg:      colors.warningLight,
     textColor: colors.warning,
   },
   outside: {
-    icon:    '❌',
+    icon:    'close-circle-outline',
     text:    'Outside office premises',
     bg:      colors.dangerLight,
     textColor: colors.danger,
@@ -57,8 +58,9 @@ const STATUS_CONFIG = {
  * @param {object} props
  * @param {'loading'|'inside'|'weak'|'outside'} props.status
  * @param {string} [props.branchName] - e.g. "Acme HQ Mumbai"
+ * @param {string} [props.message] - Optional status copy override
  */
-const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName }) => {
+const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName, message, checkedAt, onRetry, isRetrying = false }) => {
   const config  = STATUS_CONFIG[status] || STATUS_CONFIG.loading;
   const opacity = useSharedValue(1);
 
@@ -76,14 +78,35 @@ const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName }) => {
     }
   }, [status]);
 
-  const displayText = status === GPS_STATUS.INSIDE && branchName
-    ? `Inside ${branchName}`
-    : config.text;
+  const displayText = message || (
+    status === GPS_STATUS.INSIDE && branchName
+      ? `Inside ${branchName}`
+      : config.text
+  );
 
   return (
     <Animated.View style={[styles.bar, { backgroundColor: config.bg }, animatedStyle]}>
-      <Text style={styles.icon}>{config.icon}</Text>
-      <Text style={[styles.text, { color: config.textColor }]}>{displayText}</Text>
+      <View style={styles.icon}>
+        <Ionicons name={config.icon} size={19} color={config.textColor} />
+      </View>
+      <View style={styles.copy}>
+        <Text style={[styles.text, { color: config.textColor }]}>{displayText}</Text>
+        {checkedAt ? <Text style={styles.checked}>Last checked {checkedAt}</Text> : null}
+      </View>
+      {onRetry ? (
+        <TouchableOpacity
+          onPress={onRetry}
+          disabled={isRetrying}
+          style={styles.retry}
+          accessibilityRole="button"
+          accessibilityLabel="Retry location"
+          accessibilityState={{ busy: isRetrying, disabled: isRetrying }}
+        >
+          <Text style={[styles.retryText, { color: config.textColor }]}>
+            {isRetrying ? 'Checking' : 'Retry'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </Animated.View>
   );
 };
@@ -99,13 +122,32 @@ const styles = StyleSheet.create({
     marginBottom:    spacing.base,
   },
   icon: {
-    fontSize:    14,
     marginRight: spacing.sm,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  copy: {
+    flex: 1,
   },
   text: {
     fontFamily: typography.fontMedium,
     fontSize:   typography.sm,
-    flex:       1,
+    lineHeight: typography.sm * 1.35,
+  },
+  checked: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.xs,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  retry: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingLeft: spacing.sm,
+  },
+  retryText: {
+    fontFamily: typography.fontBold,
+    fontSize: typography.xs,
   },
 });
 

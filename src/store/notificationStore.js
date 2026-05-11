@@ -8,7 +8,7 @@
 
 import { create } from 'zustand';
 import { parseError } from '../utils/errorParser.js';
-import { fetchNotifications, fetchUnreadCount, markAllNotificationsRead, markNotificationsRead } from '../services/notificationService.js';
+import { fetchNotifications, fetchUnreadCount, markAllNotificationsRead, markNotificationsRead, setBadgeCount } from '../services/notificationService.js';
 
 const useNotificationStore = create((set, get) => ({
   // ─── State ─────────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ const useNotificationStore = create((set, get) => ({
     try {
       const data = await fetchUnreadCount();
       set({ unreadCount: data.unreadCount });
+      await setBadgeCount(data.unreadCount || 0).catch(() => {});
     } catch {
       // Non-critical — silent fail
     }
@@ -64,6 +65,7 @@ const useNotificationStore = create((set, get) => ({
       ),
       unreadCount: Math.max(0, state.unreadCount - 1),
     }));
+    await setBadgeCount(get().unreadCount).catch(() => {});
 
     try {
       await markNotificationsRead([notificationId]);
@@ -75,6 +77,7 @@ const useNotificationStore = create((set, get) => ({
         ),
         unreadCount: state.unreadCount + 1,
       }));
+      await setBadgeCount(get().unreadCount).catch(() => {});
     }
   },
 
@@ -88,11 +91,13 @@ const useNotificationStore = create((set, get) => ({
       notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
       unreadCount:   0,
     }));
+    await setBadgeCount(0).catch(() => {});
 
     try {
       await markAllNotificationsRead();
     } catch {
       set({ notifications: prevNotifications, unreadCount: prevCount });
+      await setBadgeCount(prevCount).catch(() => {});
     }
   },
 
@@ -102,6 +107,7 @@ const useNotificationStore = create((set, get) => ({
       notifications: [notification, ...state.notifications],
       unreadCount:   state.unreadCount + 1,
     }));
+    setBadgeCount(get().unreadCount).catch(() => {});
   },
 
   // ─── Helpers ────────────────────────────────────────────────────────────────

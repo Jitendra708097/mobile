@@ -14,23 +14,24 @@ import { formatSessionTimer } from '../../utils/formatters.js';
 /**
  * @param {object} props
  * @param {string} props.startTime - ISO string of session start
+ * @param {string} [props.timezone] - Org timezone
  * @param {object} [props.style]
  */
-const SessionTimer = ({ startTime, style }) => {
-  const [display, setDisplay] = useState(formatSessionTimer(startTime));
+const SessionTimer = ({ startTime, timezone = 'Asia/Kolkata', style }) => {
+  const [display, setDisplay] = useState(formatSessionTimer(startTime, timezone));
   const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!startTime) return;
 
-    setDisplay(formatSessionTimer(startTime));
+    setDisplay(formatSessionTimer(startTime, timezone));
 
     intervalRef.current = setInterval(() => {
-      setDisplay(formatSessionTimer(startTime));
+      setDisplay(formatSessionTimer(startTime, timezone));
     }, 30000); // update every 30 seconds
 
     return () => clearInterval(intervalRef.current);
-  }, [startTime]);
+  }, [startTime, timezone]);
 
   return (
     <Text style={[styles.timer, style]}>{display}</Text>

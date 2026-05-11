@@ -9,7 +9,7 @@
  *              there). Now correctly imported from 'react'.
  */
 
-import React, { useState, useEffect, useRef } from 'react';  // useRef from 'react' ✅
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
@@ -35,7 +35,7 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
   const [cancelId,   setCancelId]   = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const cancelSheetRef = useRef(null);  // ✅ correct — useRef from 'react'
+  const cancelSheetRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,7 +98,7 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
       </View>
 
       <Text style={styles.dateRange}>
-        📅 {formatDateRange(item.fromDate, item.toDate)}
+        {formatDateRange(item.fromDate, item.toDate)}
       </Text>
 
       {item.reason && (
@@ -135,7 +135,7 @@ const LeaveHistoryList = ({ onRefreshBalance }) => {
         ListEmptyComponent={
           !isLoading && (
             <EmptyState
-              emoji="🏖️"
+              icon="L"
               title="No leave requests"
               subtitle="Your leave history will appear here once you submit a request."
             />

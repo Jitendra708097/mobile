@@ -77,7 +77,7 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
         {/* Anomaly banner */}
         {d?.isAnomaly && (
           <View style={styles.anomalyBanner}>
-            <Text style={styles.anomalyText}>⚠️ Anomaly flagged — admin is reviewing</Text>
+            <Text style={styles.anomalyText}>Anomaly flagged. Admin is reviewing.</Text>
           </View>
         )}
 

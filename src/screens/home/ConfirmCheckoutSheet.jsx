@@ -7,33 +7,29 @@
  */
 
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Switch } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import useAttendanceStore from '../../store/attendanceStore.js';
 import AppButton          from '../../components/common/AppButton.jsx';
-import { ErrorMessage }   from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { formatTime, formatDuration } from '../../utils/formatters.js';
+import { SESSION } from '../../utils/constants.js';
 
 /**
  * @param {object}  props
  * @param {boolean} props.visible          - Controls sheet open/close
  * @param {function}props.onClose          - Called when sheet closes
+ * @param {function}props.onConfirmCheckout - Starts checkout verification flow
  * @param {string}  props.sessionStartTime - ISO string
+ * @param {string}  [props.timezone]       - Org timezone
  * @param {number}  props.sessionMinutes   - Minutes in current session
  */
-const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinutes = 0 }) => {
-  const checkOut   = useAttendanceStore((s) => s.checkOut);
-  const isLoading  = useAttendanceStore((s) => s.isLoading);
-  const storeError = useAttendanceStore((s) => s.error);
-  const clearError = useAttendanceStore((s) => s.clearError);
-
+const ConfirmCheckoutSheet = ({ visible, onClose, onConfirmCheckout, sessionStartTime, timezone = 'Asia/Kolkata', sessionMinutes = 0, minSessionMinutes = SESSION.MIN_SESSION_MINUTES, cooldownMinutes = SESSION.COOLDOWN_MINUTES }) => {
   const [isFinal, setIsFinal] = useState(false);
   const sheetRef = useRef(null);
+  const belowMinimum = sessionMinutes > 0 && sessionMinutes < minSessionMinutes;
 
   useEffect(() => {
     if (visible)
@@ -46,17 +42,12 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
     }
   }, [visible]);
 
-  const handleConfirm = async () => {
-    clearError();
-    const result = await checkOut(isFinal);
-    if (result.success) {
-      setIsFinal(false);
-      onClose();
-    }
+  const handleConfirm = () => {
+    onConfirmCheckout?.(isFinal);
+    setIsFinal(false);
   };
 
   const handleClose = () => {
-    clearError();
     setIsFinal(false);
     onClose();
   };
@@ -65,20 +56,21 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
     <BottomSheet
       ref={sheetRef}
       index={-1}
-      snapPoints={['44%']}
+      snapPoints={['58%', '82%']}
       enablePanDownToClose
       onClose={handleClose}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
     >
       <BottomSheetView style={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Confirm Check Out?</Text>
 
         {/* Session info */}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Started at</Text>
-            <Text style={styles.infoValue}>{formatTime(sessionStartTime)}</Text>
+            <Text style={styles.infoValue}>{formatTime(sessionStartTime, timezone)}</Text>
           </View>
           <View style={[styles.infoRow, styles.durationRow]}>
             <Text style={styles.infoLabel}>Session duration</Text>
@@ -86,11 +78,27 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
           </View>
         </View>
 
+        {belowMinimum && (
+          <View style={styles.warningBox}>
+            <Text style={styles.warningTitle}>Short session</Text>
+            <Text style={styles.warningText}>
+              This session is below the {minSessionMinutes} min policy. It may need admin review.
+            </Text>
+          </View>
+        )}
+
+        {!isFinal ? (
+          <View style={styles.policyBox}>
+            <Text style={styles.policyText}>Next check-in unlocks after about {cooldownMinutes} min.</Text>
+          </View>
+        ) : null}
+
         {/* Final checkout toggle */}
         <View style={styles.toggleRow}>
           <View style={styles.toggleLeft}>
             <Text style={styles.toggleLabel}>Final check-out for today</Text>
             <Text style={styles.toggleSub}>No more check-ins after this</Text>
+            {isFinal ? <Text style={styles.finalWarning}>This will close your attendance day.</Text> : null}
           </View>
           <Switch
             value={isFinal}
@@ -99,9 +107,6 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
             thumbColor={isFinal ? colors.accent : colors.bgSubtle}
           />
         </View>
-
-        {storeError && <ErrorMessage message={storeError} />}
-
         {/* Buttons */}
         <View style={styles.btnRow}>
           <AppButton
@@ -111,13 +116,13 @@ const ConfirmCheckoutSheet = ({ visible, onClose, sessionStartTime, sessionMinut
             style={styles.btnHalf}
           />
           <AppButton
-            label="Check Out"
+            label={isFinal ? 'Final Check Out' : 'Check Out'}
             onPress={handleConfirm}
             variant="danger"
-            loading={isLoading}
             style={styles.btnHalf}
           />
         </View>
+        </ScrollView>
       </BottomSheetView>
     </BottomSheet>
   );
@@ -189,6 +194,43 @@ const styles = StyleSheet.create({
     fontSize:   typography.xs,
     color:      colors.textMuted,
     marginTop:  2,
+  },
+  finalWarning: {
+    fontFamily: typography.fontBold,
+    fontSize: typography.xs,
+    color: colors.danger,
+    marginTop: spacing.xs,
+  },
+  warningBox: {
+    backgroundColor: colors.warningLight,
+    borderRadius: 12,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+  },
+  warningTitle: {
+    fontFamily: typography.fontBold,
+    fontSize: typography.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  warningText: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.sm * typography.normal,
+  },
+  policyBox: {
+    backgroundColor: colors.bgSubtle,
+    borderRadius: 12,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+  },
+  policyText: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
   },
 
   btnRow: {

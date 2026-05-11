@@ -10,10 +10,12 @@
  * @returns {{lat: number, lng: number} | null}
  */
 const normalizePoint = (point) => {
-  if (!point || typeof point.lat !== 'number' || typeof point.lng !== 'number') {
+  const lat = Number(point?.lat);
+  const lng = Number(point?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return null;
   }
-  return { lat: point.lat, lng: point.lng };
+  return { lat, lng };
 };
 
 /**
@@ -22,14 +24,21 @@ const normalizePoint = (point) => {
  * @returns {Array<{lat: number, lng: number}>}
  */
 const normalizePolygon = (polygon) => {
-  if (!polygon) return [];
+  if (!Array.isArray(polygon)) return [];
   
-  // Handle nested array case [[{lat, lng}, ...]]
-  if (Array.isArray(polygon?.[0]?.[0])) {
-    return polygon[0];
+  const ring = Array.isArray(polygon[0]) ? polygon[0] : polygon;
+  const normalized = ring.map(normalizePoint).filter(Boolean);
+  
+  if (normalized.length >= 2) {
+    const first = normalized[0];
+    const last = normalized[normalized.length - 1];
+
+    if (Math.abs(first.lat - last.lat) <= 1e-9 && Math.abs(first.lng - last.lng) <= 1e-9) {
+      normalized.pop();
+    }
   }
-  
-  return polygon || [];
+
+  return normalized;
 };
 
 /**
@@ -154,6 +163,51 @@ export const calculatePolygonCentroid = (polygon = []) => {
   };
 };
 
+const metersPerDegreeLng = (lat) => 111320 * Math.cos((Number(lat) * Math.PI) / 180);
+
+const pointToSegmentDistanceMeters = (point, start, end) => {
+  const latScale = 111320;
+  const lngScale = metersPerDegreeLng(point.lat || start.lat || end.lat || 0) || 1;
+  const px = point.lng * lngScale;
+  const py = point.lat * latScale;
+  const ax = start.lng * lngScale;
+  const ay = start.lat * latScale;
+  const bx = end.lng * lngScale;
+  const by = end.lat * latScale;
+  const dx = bx - ax;
+  const dy = by - ay;
+
+  if (dx === 0 && dy === 0) {
+    return Math.hypot(px - ax, py - ay);
+  }
+
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+};
+
+export const distanceToPolygonMeters = (point, polygon = []) => {
+  const normalizedPoint = normalizePoint(point);
+  const normalizedPolygon = normalizePolygon(polygon);
+
+  if (!normalizedPoint || normalizedPolygon.length < 3) {
+    return Infinity;
+  }
+
+  if (isInsidePolygon(normalizedPoint, normalizedPolygon)) {
+    return 0;
+  }
+
+  let minDistance = Infinity;
+  for (let i = 0, j = normalizedPolygon.length - 1; i < normalizedPolygon.length; j = i++) {
+    minDistance = Math.min(
+      minDistance,
+      pointToSegmentDistanceMeters(normalizedPoint, normalizedPolygon[j], normalizedPolygon[i])
+    );
+  }
+
+  return minDistance;
+};
+
 /**
  * Validate polygon has minimum 3 points
  * @param {Array} polygon
@@ -166,6 +220,7 @@ export const isValidPolygon = (polygon) => {
 
 export default {
   isInsidePolygon,
+  distanceToPolygonMeters,
   calculatePolygonCentroid,
   isValidPolygon,
 };

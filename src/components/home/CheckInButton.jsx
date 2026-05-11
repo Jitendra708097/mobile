@@ -10,6 +10,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
@@ -19,7 +20,7 @@ import { spacing }    from '../../theme/spacing.js';
  * @param {function} props.onPress   - Tap handler (opens LivenessChallenge)
  * @param {boolean}  [props.loading] - Disable during API call
  */
-const CheckInButton = ({ onPress, loading = false }) => {
+const CheckInButton = ({ onPress, loading = false, disabled = false, label = 'Mark Attendance', hint }) => {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -28,6 +29,7 @@ const CheckInButton = ({ onPress, loading = false }) => {
 
   const handlePressIn  = () => { scale.value = withSpring(0.96, { damping: 12 }); };
   const handlePressOut = () => { scale.value = withSpring(1.0,  { damping: 12 }); };
+  const isDisabled = loading || disabled;
 
   return (
     <Animated.View style={[styles.wrapper, animatedStyle]}>
@@ -35,17 +37,24 @@ const CheckInButton = ({ onPress, loading = false }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        disabled={loading}
+        disabled={isDisabled}
         activeOpacity={1}
-        style={styles.button}
+        style={[styles.button, isDisabled && styles.buttonDisabled]}
         accessibilityRole="button"
-        accessibilityLabel="Mark Attendance"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
       >
         <View style={styles.content}>
-          <Text style={styles.icon}>✓</Text>
-          <Text style={styles.label}>Mark Attendance</Text>
+          <Ionicons
+            name="checkmark-circle"
+            size={20}
+            color={isDisabled ? colors.textSecondary : colors.textInverse}
+            style={styles.icon}
+          />
+          <Text style={[styles.label, isDisabled && styles.disabledText]}>{loading ? 'Checking...' : label}</Text>
         </View>
       </TouchableOpacity>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </Animated.View>
   );
 };
@@ -65,21 +74,37 @@ const styles = StyleSheet.create({
     // Android
     elevation: 8,
   },
+  buttonDisabled: {
+    backgroundColor: colors.bgSubtle,
+    elevation: 0,
+    boxShadow: 'none',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   content: {
     flexDirection:  'row',
     alignItems:     'center',
   },
   icon: {
-    fontSize:    22,
-    color:       colors.textInverse,
     marginRight: spacing.sm,
-    fontFamily:  typography.fontBold,
   },
   label: {
     fontFamily: typography.fontSemiBold,
     fontSize:   typography.md,
     color:      colors.textInverse,
     letterSpacing: 0.2,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
+  disabledText: {
+    color: colors.textSecondary,
+  },
+  hint: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });
 

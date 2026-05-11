@@ -8,13 +8,12 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, TextInput,
+  StyleSheet, ActivityIndicator, TextInput, RefreshControl, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-
 import AppButton  from '../../components/common/AppButton.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -25,7 +24,7 @@ import {
   LEAVE_TYPES,
   LEAVE_TYPE_LABELS,
 } from '../../utils/constants.js';
-import { formatDateRange, formatDate, countWorkingDays } from '../../utils/formatters.js';
+import { formatDateRange, countWorkingDays } from '../../utils/formatters.js';
 import { applyLeave, cancelLeave, getLeaveBalance, getLeaveHistory } from '../../services/leaveService.js';
 
 // ── Leave Balance Card ───────────────────────────────────────────────────────
@@ -107,6 +106,10 @@ const LeaveScreen = () => {
   const [isLoading,  setLoading]    = useState(false);
   const [error,      setError]      = useState('');
   const [success,    setSuccess]    = useState('');
+  const [isRefreshing, setRefreshing] = useState(false);
+  const [historyStatus, setHistoryStatus] = useState('all');
+  const [historyType, setHistoryType] = useState('all');
+  const applyScrollRef = useRef(null);
 
   // Apply form
   const [leaveType, setLeaveType] = useState(LEAVE_TYPES.CASUAL);
@@ -150,7 +153,7 @@ const LeaveScreen = () => {
     setError(''); setLoading(true);
     try {
       await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay });
-      setSuccess('Leave request submitted successfully! ✅');
+      setSuccess('Leave request submitted successfully.');
       setReason(''); setFromDate(''); setToDate('');
       fetchBalance(); fetchHistory();
       setTimeout(() => { setSuccess(''); setActiveTab(2); }, 1800);
@@ -166,11 +169,40 @@ const LeaveScreen = () => {
     } catch { /* non-critical */ }
   };
 
+  const refreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchBalance(), fetchHistory()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const workingDays = fromDate && toDate ? countWorkingDays(fromDate, toDate) : 0;
   const selectedBalance = balances[leaveType];
+  const pendingCount = history.filter((item) => item.status === 'pending').length;
+  const filteredHistory = history.filter((item) => {
+    const statusMatches = historyStatus === 'all' || item.status === historyStatus;
+    const typeMatches = historyType === 'all' || item.leaveType === historyType;
+    return statusMatches && typeMatches;
+  });
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Leave</Text>
+          <Text style={styles.subtitle}>Balance, requests, and approvals</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.headerAction}
+          onPress={() => setActiveTab(1)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.headerActionText}>Apply</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabBar}>
         {TABS.map((tab, i) => (
@@ -180,7 +212,7 @@ const LeaveScreen = () => {
             onPress={() => setActiveTab(i)}
           >
             <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
-              {tab}
+              {tab}{tab === 'History' && pendingCount > 0 ? ` (${pendingCount})` : ''}
             </Text>
           </TouchableOpacity>
         ))}
@@ -188,7 +220,10 @@ const LeaveScreen = () => {
 
       {/* ── Tab 0: Balance ── */}
       {activeTab === 0 && (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+        >
           <View style={styles.grid}>
             {[LEAVE_TYPES.CASUAL, LEAVE_TYPES.SICK, LEAVE_TYPES.EARNED, LEAVE_TYPES.OPTIONAL].map((type) => (
               <View key={type} style={styles.cardWrap}>
@@ -200,104 +235,179 @@ const LeaveScreen = () => {
             label="Apply for Leave"
             onPress={() => setActiveTab(1)}
             fullWidth
-            style={{ marginHorizontal: spacing.base, marginTop: spacing.base }}
+            style={{ marginTop: spacing.base }}
           />
         </ScrollView>
       )}
 
       {/* ── Tab 1: Apply ── */}
       {activeTab === 1 && (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
         >
-          {success && (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>{success}</Text>
-            </View>
-          )}
-          {error && <ErrorMessage message={error} style={{ marginHorizontal: spacing.base }} />}
-
-          {/* Leave type pills */}
-          <Text style={styles.sectionLabel}>Leave Type</Text>
-          <View style={styles.pillRow}>
-            {Object.entries(LEAVE_TYPE_LABELS).map(([k, v]) => (
-              <TouchableOpacity
-                key={k}
-                style={[styles.pill, leaveType === k && styles.pillActive]}
-                onPress={() => setLeaveType(k)}
-              >
-                <Text style={[styles.pillText, leaveType === k && styles.pillTextActive]}>{v}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.formPad}>
-            <Text style={styles.label}>From Date (YYYY-MM-DD)</Text>
-            <TextInput
-              value={fromDate}
-              onChangeText={setFromDate}
-              placeholder="2026-03-20"
-              keyboardType="numbers-and-punctuation"
-              style={styles.input}
-            />
-            <Text style={[styles.label, { marginTop: spacing.base }]}>To Date (YYYY-MM-DD)</Text>
-            <TextInput
-              value={toDate}
-              onChangeText={setToDate}
-              placeholder="2026-03-21"
-              keyboardType="numbers-and-punctuation"
-              style={styles.input}
-            />
-
-            {/* Half day toggle */}
-            <TouchableOpacity
-              style={[styles.halfDayRow, isHalfDay && styles.halfDayActive]}
-              onPress={() => setIsHalfDay((p) => !p)}
-            >
-              <Text style={styles.halfDayText}>Half Day</Text>
-              <Text style={styles.halfDayCheck}>{isHalfDay ? '✓' : '○'}</Text>
-            </TouchableOpacity>
-
-            {/* Preview */}
-            {workingDays > 0 && (
-              <View style={styles.previewBox}>
-                <Text style={styles.previewDays}>{isHalfDay ? 0.5 : workingDays} working day{workingDays !== 1 ? 's' : ''}</Text>
-                {selectedBalance && (
-                  <Text style={styles.previewBalance}>
-                    Remaining: {selectedBalance.remaining} days {selectedBalance.remaining >= workingDays ? '✅' : '⚠️'}
-                  </Text>
-                )}
+          <ScrollView
+            ref={applyScrollRef}
+            contentContainerStyle={styles.applyScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+          >
+            {success && (
+              <View style={styles.successBox}>
+                <Text style={styles.successText}>{success}</Text>
               </View>
             )}
+            {error && <ErrorMessage message={error} />}
 
-            <Text style={styles.label}>Reason *</Text>
-            <TextInput
-              value={reason}
-              onChangeText={setReason}
-              placeholder="Reason for leave..."
-              multiline
-              numberOfLines={3}
-              style={[styles.input, styles.textarea]}
-            />
+            <View style={styles.formSection}>
+              <Text style={styles.sectionLabel}>Leave Type</Text>
+              <View style={styles.pillRow}>
+                {Object.entries(LEAVE_TYPE_LABELS).map(([k, v]) => (
+                  <TouchableOpacity
+                    key={k}
+                    style={[styles.pill, leaveType === k && styles.pillActive]}
+                    onPress={() => setLeaveType(k)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.pillText, leaveType === k && styles.pillTextActive]}>{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-            <AppButton
-              label="Submit Leave Request"
-              onPress={handleApply}
-              loading={isLoading}
-              fullWidth
-            />
-          </View>
-        </ScrollView>
+            <View style={styles.formSection}>
+              <View style={styles.dateInputRow}>
+                <View style={styles.dateInputCol}>
+                  <Text style={styles.label}>From Date</Text>
+                  <TextInput
+                    value={fromDate}
+                    onChangeText={setFromDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numbers-and-punctuation"
+                    style={styles.input}
+                  />
+                  <View style={styles.quickDateRow}>
+                    <TouchableOpacity style={styles.quickDateBtn} onPress={() => setFromDate(dayjs().format('YYYY-MM-DD'))}>
+                      <Text style={styles.quickDateText}>Today</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickDateBtn} onPress={() => setFromDate(dayjs().add(1, 'day').format('YYYY-MM-DD'))}>
+                      <Text style={styles.quickDateText}>Tomorrow</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.dateInputCol}>
+                  <Text style={styles.label}>To Date</Text>
+                  <TextInput
+                    value={toDate}
+                    onChangeText={setToDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numbers-and-punctuation"
+                    style={styles.input}
+                  />
+                  <View style={styles.quickDateRow}>
+                    <TouchableOpacity style={styles.quickDateBtn} onPress={() => setToDate(fromDate || dayjs().format('YYYY-MM-DD'))}>
+                      <Text style={styles.quickDateText}>Same</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickDateBtn} onPress={() => setToDate(dayjs(fromDate || undefined).add(1, 'day').format('YYYY-MM-DD'))}>
+                      <Text style={styles.quickDateText}>Next</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.halfDayRow, isHalfDay && styles.halfDayActive]}
+                onPress={() => setIsHalfDay((p) => !p)}
+                activeOpacity={0.85}
+              >
+                <View>
+                  <Text style={styles.halfDayText}>Half Day</Text>
+                  <Text style={styles.halfDaySub}>Counts as 0.5 working day</Text>
+                </View>
+                <Text style={styles.halfDayCheck}>{isHalfDay ? 'Yes' : 'No'}</Text>
+              </TouchableOpacity>
+
+              {workingDays > 0 && (
+                <View style={styles.previewBox}>
+                  <Text style={styles.previewDays}>{isHalfDay ? 0.5 : workingDays} working day{workingDays !== 1 ? 's' : ''}</Text>
+                  {selectedBalance && (
+                    <Text style={styles.previewBalance}>
+                      {selectedBalance.remaining} days remaining - {selectedBalance.remaining >= workingDays ? 'Available' : 'Low balance'}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.label}>Reason *</Text>
+              <TextInput
+                value={reason}
+                onChangeText={setReason}
+                onFocus={() => setTimeout(() => applyScrollRef.current?.scrollToEnd({ animated: true }), 250)}
+                placeholder="Reason for leave..."
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={4}
+                style={[styles.input, styles.textarea]}
+              />
+
+              <AppButton
+                label="Submit Leave Request"
+                onPress={handleApply}
+                loading={isLoading}
+                fullWidth
+                style={styles.submitButton}
+              />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* ── Tab 2: History ── */}
       {activeTab === 2 && (
         <FlatList
-          data={history}
+          data={filteredHistory}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: spacing.base, paddingBottom: spacing['3xl'] }}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+          ListHeaderComponent={
+            <View style={styles.filterBlock}>
+              <Text style={styles.filterLabel}>Status</Text>
+              <View style={styles.filterRow}>
+                {['all', 'pending', 'approved', 'rejected', 'cancelled'].map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.filterChip, historyStatus === status && styles.filterChipActive]}
+                    onPress={() => setHistoryStatus(status)}
+                  >
+                    <Text style={[styles.filterText, historyStatus === status && styles.filterTextActive]}>
+                      {status === 'all' ? 'All' : status}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.filterLabel}>Type</Text>
+              <View style={styles.filterRow}>
+                {['all', ...Object.keys(LEAVE_TYPE_LABELS)].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[styles.filterChip, historyType === type && styles.filterChipActive]}
+                    onPress={() => setHistoryType(type)}
+                  >
+                    <Text style={[styles.filterText, historyType === type && styles.filterTextActive]}>
+                      {type === 'all' ? 'All' : LEAVE_TYPE_LABELS[type]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.historyItem}>
               <View style={styles.historyTop}>
@@ -319,7 +429,7 @@ const LeaveScreen = () => {
           )}
           ListEmptyComponent={
             !isLoading && (
-              <EmptyState emoji="🏖" title="No leave requests" subtitle="Your leave history will appear here" />
+              <EmptyState icon="L" title="No leave requests" subtitle="Your leave history will appear here" />
             )
           }
           ListFooterComponent={
@@ -333,65 +443,130 @@ const LeaveScreen = () => {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: colors.bgPrimary },
+  flex: { flex: 1 },
   scroll: { padding: spacing.base, paddingBottom: spacing['2xl'] },
+  applyScroll: {
+    padding: spacing.base,
+    paddingBottom: spacing['3xl'] * 2,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.base,
+    backgroundColor: colors.bgPrimary,
+  },
+  headerText: { flex: 1, paddingRight: spacing.base },
+  title: {
+    fontFamily: typography.fontBold,
+    fontSize: typography['2xl'],
+    color: colors.textPrimary,
+    lineHeight: typography['2xl'] * 1.15,
+  },
+  subtitle: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  headerAction: {
+    minHeight: 40,
+    paddingHorizontal: spacing.base,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+  },
+  headerActionText: {
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.sm,
+    color: colors.textInverse,
+  },
 
   tabBar: {
     flexDirection:   'row',
-    backgroundColor: colors.bgSurface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.bgSubtle,
+    borderRadius: 12,
+    padding: 4,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.sm,
   },
   tab: {
     flex:            1,
-    paddingVertical: spacing.base,
+    minHeight: 40,
+    paddingHorizontal: spacing.xs,
+    justifyContent: 'center',
     alignItems:      'center',
+    borderRadius: 9,
   },
   tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.accent,
+    backgroundColor: colors.bgSurface,
+    boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.08)',
+    elevation: 1,
   },
   tabText: {
     fontFamily: typography.fontMedium,
-    fontSize:   typography.base,
+    fontSize:   typography.sm,
     color:      colors.textMuted,
+    textAlign: 'center',
   },
   tabTextActive: { color: colors.accent, fontFamily: typography.fontSemiBold },
 
   grid: {
     flexDirection: 'row',
     flexWrap:      'wrap',
-    gap:           spacing.sm,
+    justifyContent: 'space-between',
   },
-  cardWrap: { width: '48%' },
+  cardWrap: {
+    width: '48%',
+    marginBottom: spacing.sm,
+  },
 
   sectionLabel: {
     fontFamily:      typography.fontMedium,
     fontSize:        typography.sm,
     color:           colors.textSecondary,
     marginBottom:    spacing.sm,
-    marginHorizontal: spacing.base,
-    marginTop:       spacing.base,
   },
   pillRow: {
     flexDirection:   'row',
     flexWrap:        'wrap',
     gap:             spacing.sm,
-    marginHorizontal: spacing.base,
-    marginBottom:    spacing.base,
   },
   pill: {
-    borderRadius:      20,
-    paddingHorizontal: spacing.base,
+    width: '48%',
+    minHeight:         44,
+    borderRadius:      10,
+    paddingHorizontal: spacing.sm,
     paddingVertical:   spacing.sm,
     backgroundColor:   colors.bgSubtle,
     borderWidth:       1,
     borderColor:       colors.border,
+    justifyContent:    'center',
   },
   pillActive: { backgroundColor: colors.accentLight, borderColor: colors.accent },
-  pillText:   { fontFamily: typography.fontMedium, fontSize: typography.sm, color: colors.textSecondary },
+  pillText:   { fontFamily: typography.fontMedium, fontSize: typography.sm, color: colors.textSecondary, textAlign: 'center' },
   pillTextActive: { color: colors.accent },
 
   formPad:  { paddingHorizontal: spacing.base },
+  formSection: {
+    backgroundColor: colors.bgSurface,
+    borderRadius: 12,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+    boxShadow: '0px 1px 6px rgba(0, 0, 0, 0.05)',
+    elevation: 1,
+  },
+  dateInputRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dateInputCol: {
+    flex: 1,
+  },
 
   // ── TextInput Styles ─────────────────────────────────────────────────────────
   label: {
@@ -399,7 +574,6 @@ const styles = StyleSheet.create({
     fontSize:     typography.sm,
     color:        colors.textPrimary,
     marginBottom: spacing.xs,
-    marginTop:    spacing.base,
   },
   input: {
     borderWidth:       1,
@@ -407,14 +581,38 @@ const styles = StyleSheet.create({
     borderRadius:      12,
     paddingHorizontal: spacing.base,
     paddingVertical:   spacing.sm,
+    minHeight:         46,
     fontFamily:        typography.fontRegular,
-    fontSize:          typography.base,
+    fontSize:          typography.sm,
     color:             colors.textPrimary,
     backgroundColor:   colors.bgSubtle,
   },
   textarea: {
-    minHeight: 80,
+    minHeight: 108,
     textAlignVertical: 'top',
+    marginBottom: spacing.base,
+  },
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  quickDateBtn: {
+    flex: 1,
+    borderRadius: 999,
+    backgroundColor: colors.bgSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    minHeight: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickDateText: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.xs,
+    color: colors.accent,
   },
 
   halfDayRow: {
@@ -427,9 +625,11 @@ const styles = StyleSheet.create({
     marginBottom:    spacing.base,
     borderWidth:     1,
     borderColor:     colors.border,
+    marginTop:       spacing.base,
   },
   halfDayActive: { borderColor: colors.accent, backgroundColor: colors.accentLight },
   halfDayText:   { fontFamily: typography.fontMedium, fontSize: typography.base, color: colors.textPrimary },
+  halfDaySub:    { fontFamily: typography.fontRegular, fontSize: typography.xs, color: colors.textMuted, marginTop: 2 },
   halfDayCheck:  { fontFamily: typography.fontBold,   fontSize: typography.lg,   color: colors.accent },
 
   previewBox: {
@@ -449,12 +649,15 @@ const styles = StyleSheet.create({
     color:      colors.textSecondary,
     marginTop:  spacing.xs,
   },
+  submitButton: {
+    marginTop: spacing.xs,
+  },
 
   successBox: {
     backgroundColor: colors.successLight,
     borderRadius:    12,
     padding:         spacing.base,
-    margin:          spacing.base,
+    marginBottom:    spacing.base,
     alignItems:      'center',
   },
   successText: { fontFamily: typography.fontSemiBold, fontSize: typography.base, color: colors.success },
@@ -481,6 +684,46 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerLight,
   },
   cancelText: { fontFamily: typography.fontMedium, fontSize: typography.xs, color: colors.danger },
+  filterBlock: {
+    backgroundColor: colors.bgSurface,
+    borderRadius: 12,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+  },
+  filterLabel: {
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.xs,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  filterChip: {
+    borderRadius: 999,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.bgSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentLight,
+    borderColor: colors.accent,
+  },
+  filterText: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
+  },
+  filterTextActive: {
+    color: colors.accent,
+  },
 });
 
 export default LeaveScreen;

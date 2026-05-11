@@ -7,26 +7,16 @@
  */
 
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, Modal,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Modal, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-import AppInput  from '../../components/common/AppInput.jsx';
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { submitRegularisation } from '../../services/regularisationService.js';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import {
-  REGULARISATION_TYPES,
-  REGULARISATION_TYPE_LABELS,
-  EVIDENCE_TYPES,
-  EVIDENCE_TYPE_LABELS,
-  API_ROUTES,
-} from '../../utils/constants.js';
+import { REGULARISATION_TYPES, REGULARISATION_TYPE_LABELS, EVIDENCE_TYPES, EVIDENCE_TYPE_LABELS, API_ROUTES } from '../../utils/constants.js';
 
 const TypePill = ({ label, selected, onPress }) => (
   <TouchableOpacity
@@ -35,6 +25,33 @@ const TypePill = ({ label, selected, onPress }) => (
   >
     <Text style={[styles.pillText, selected && styles.pillTextSelected]}>{label}</Text>
   </TouchableOpacity>
+);
+
+const FormField = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType = 'default',
+  multiline = false,
+  numberOfLines,
+}) => (
+  <View style={styles.inputBlock}>
+    <Text style={styles.inputLabel}>{label}</Text>
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={colors.textMuted}
+      keyboardType={keyboardType}
+      autoCapitalize="none"
+      autoCorrect={false}
+      multiline={multiline}
+      numberOfLines={multiline ? numberOfLines : undefined}
+      style={[styles.textInput, multiline && styles.textArea]}
+      textAlignVertical={multiline ? 'top' : 'center'}
+    />
+  </View>
 );
 
 /**
@@ -74,6 +91,35 @@ const RegularisationModal = ({ visible, onClose, date }) => {
 
   const handleSubmit = async () => {
     if (!reason.trim()) { setError('Reason is required.'); return; }
+    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const needsCheckIn = type === REGULARISATION_TYPES.MISSED_CHECKIN || type === REGULARISATION_TYPES.WRONG_TIME;
+    const needsCheckOut = type === REGULARISATION_TYPES.MISSED_CHECKOUT || type === REGULARISATION_TYPES.WRONG_TIME;
+
+    if (needsCheckIn && !checkIn.trim()) {
+      setError('Requested check-in time is required for this request type.');
+      return;
+    }
+
+    if (needsCheckOut && !checkOut.trim()) {
+      setError('Requested check-out time is required for this request type.');
+      return;
+    }
+
+    if (checkIn && !timePattern.test(checkIn.trim())) {
+      setError('Check-in time must be in 24-hour HH:MM format.');
+      return;
+    }
+
+    if (checkOut && !timePattern.test(checkOut.trim())) {
+      setError('Check-out time must be in 24-hour HH:MM format.');
+      return;
+    }
+
+    if (checkIn && checkOut && checkOut <= checkIn) {
+      setError('Check-out time must be after check-in time.');
+      return;
+    }
+
     setLoading(true); setError('');
     try {
       await submitRegularisation({
@@ -107,7 +153,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
         <View style={styles.header}>
           <Text style={styles.title}>Submit Regularisation</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Text style={styles.closeText}>✕</Text>
+            <Text style={styles.closeText}>Close</Text>
           </TouchableOpacity>
         </View>
 
@@ -118,7 +164,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
         >
           {success && (
             <View style={styles.successBanner}>
-              <Text style={styles.successText}>✅ Regularisation submitted successfully!</Text>
+              <Text style={styles.successText}>Regularisation submitted successfully.</Text>
             </View>
           )}
 
@@ -130,6 +176,12 @@ const RegularisationModal = ({ visible, onClose, date }) => {
             </View>
           )}
 
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
+              Regularisation goes through manager/admin approval. Add the exact requested time and a clear reason.
+            </Text>
+          </View>
+
           {/* Type selector */}
           <Text style={styles.fieldLabel}>Request Type</Text>
           <View style={styles.pillRow}>
@@ -139,15 +191,15 @@ const RegularisationModal = ({ visible, onClose, date }) => {
           </View>
 
           {/* Times */}
-          <AppInput
-            label="Requested Check-in Time (HH:MM)"
+          <FormField
+            label={type === REGULARISATION_TYPES.MISSED_CHECKOUT ? 'Requested Check-in Time (optional)' : 'Requested Check-in Time (HH:MM)'}
             value={checkIn}
             onChangeText={setCheckIn}
             placeholder="09:00"
             keyboardType="numbers-and-punctuation"
           />
-          <AppInput
-            label="Requested Check-out Time (HH:MM)"
+          <FormField
+            label={type === REGULARISATION_TYPES.MISSED_CHECKIN ? 'Requested Check-out Time (optional)' : 'Requested Check-out Time (HH:MM)'}
             value={checkOut}
             onChangeText={setCheckOut}
             placeholder="18:00"
@@ -155,7 +207,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
           />
 
           {/* Reason */}
-          <AppInput
+          <FormField
             label="Reason *"
             value={reason}
             onChangeText={setReason}
@@ -175,7 +227,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
           {/* Optional photo */}
           <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
             <Text style={styles.photoBtnText}>
-              {photo ? '📷 Photo attached ✓' : '📷 Attach evidence photo (optional)'}
+              {photo ? 'Photo attached' : 'Attach evidence photo (optional)'}
             </Text>
           </TouchableOpacity>
 
@@ -253,6 +305,18 @@ const styles = StyleSheet.create({
     fontSize:   typography.base,
     color:      colors.textPrimary,
   },
+  infoBox: {
+    backgroundColor: colors.accentLight,
+    borderRadius: 12,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+  },
+  infoText: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.sm * typography.normal,
+  },
 
   fieldLabel: {
     fontFamily:   typography.fontMedium,
@@ -260,6 +324,34 @@ const styles = StyleSheet.create({
     color:        colors.textSecondary,
     marginBottom: spacing.sm,
     letterSpacing: 0.2,
+  },
+
+  inputBlock: {
+    marginBottom: spacing.base,
+  },
+  inputLabel: {
+    fontFamily: typography.fontMedium,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.2,
+  },
+  textInput: {
+    minHeight: 52,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.bgSurface,
+    fontFamily: typography.fontRegular,
+    fontSize: typography.base,
+    color: colors.textPrimary,
+  },
+  textArea: {
+    minHeight: 112,
+    paddingTop: spacing.md,
+    lineHeight: typography.base * typography.normal,
   },
 
   pillRow: {

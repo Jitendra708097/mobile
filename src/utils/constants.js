@@ -40,6 +40,7 @@ export const TYPE_COLORS = {
 
 // ─── Attendance Status ───────────────────────────────────────────────────────
 export const ATTENDANCE_STATUS = {
+  PENDING:         'pending',
   PRESENT:         'present',
   ABSENT:          'absent',
   HALF_DAY:        'half_day',
@@ -47,6 +48,7 @@ export const ATTENDANCE_STATUS = {
   ON_LEAVE:        'on_leave',
   HOLIDAY:         'holiday',
   WEEKEND:         'weekend',
+  INCOMPLETE:      'incomplete',
   OVERTIME:        'overtime',
   NOT_MARKED:      'not_marked',
 };
@@ -120,14 +122,12 @@ export const LIVENESS_CHALLENGES = {
   BLINK:      'blink',
   TURN_LEFT:  'turn_left',
   TURN_RIGHT: 'turn_right',
-  SMILE:      'smile',
 };
 
 export const LIVENESS_CHALLENGE_LABELS = {
-  blink:      'Please BLINK',
+  blink:      'Blink once, then look at camera',
   turn_left:  'Turn LEFT slowly',
   turn_right: 'Turn RIGHT slowly',
-  smile:      'Please SMILE',
 };
 
 // ─── Session Constants ───────────────────────────────────────────────────────
@@ -136,8 +136,8 @@ export const SESSION = {
   COOLDOWN_MINUTES:     15,
   MAX_SESSIONS_PER_DAY: 3,
   UNDO_WINDOW_MINUTES:  10,
-  CHALLENGE_TIMEOUT_MS: 15000,  // 15 seconds
-  TOKEN_EXPIRY_MS:      30000,  // 30 seconds
+  CHALLENGE_TIMEOUT_MS: 60000,  // user-facing challenge window
+  TOKEN_EXPIRY_MS:      180000, // backend grace for GPS/upload after capture
 };
 
 // ─── GPS Accuracy Thresholds (metres) ────────────────────────────────────────
@@ -169,6 +169,8 @@ export const API_ROUTES = {
   REQUEST_CHECKIN:    '/attendance/challenge',
   CHECKIN:            '/attendance/check-in',
   CHECKOUT:           '/attendance/check-out',
+  KIOSK_SCAN:         '/attendance/kiosk/scan',
+  ATTENDANCE_SYNC:    '/attendance/sync',
   CHECKOUT_UNDO:      '/attendance/undo-checkout',
   ATTENDANCE_STATUS:  '/attendance/today',
   ATTENDANCE_HISTORY: '/attendance/history',
@@ -180,7 +182,8 @@ export const API_ROUTES = {
   NOTIFICATIONS_READ: '/notifications/read',
   NOTIFICATIONS_READ_ALL: '/notifications/read-all',
   NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count',
-  NOTIFICATIONS_REGISTER_TOKEN: '/notifications/register-token',
+  NOTIFICATIONS_REGISTER_TOKEN: '/device-tokens',
+  NOTIFICATION_PREFERENCES: '/employees/me/notification-preferences',
   PROFILE:            '/employees/profile',
   CHANGE_PASSWORD:    '/auth/change-password',
   REGISTER_DEVICE:    '/auth/register-device',
@@ -190,7 +193,7 @@ export const API_ROUTES = {
 export const ACCURATE_OPTIONS = {
   performanceMode:    'accurate',
   landmarkMode:       'none',
-  classificationMode: 'all',   // enables eye open + smile probabilities
+  classificationMode: 'all',   // enables eye open probabilities
   minFaceSize:        0.15,
   trackingEnabled:    false,
 };

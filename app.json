@@ -17,12 +17,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.attendease.app",
-      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "AttendEase uses your camera to verify your identity when marking attendance.",
-        "NSLocationWhenInUseUsageDescription": "AttendEase uses your location to verify you are at your office premises.",
-        "NSLocationAlwaysUsageDescription": "AttendEase uses your location to verify office premises.",
-        "NSFaceIDUsageDescription": "AttendEase uses Face ID for quick and secure login."
+        "NSLocationWhenInUseUsageDescription": "AttendEase uses your location to verify you are at your office premises."
       }
     },
     "android": {
@@ -37,13 +34,7 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "VIBRATE"
       ]
     },
     "plugins": [
@@ -53,14 +44,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow AttendEase to access your camera."
+          "cameraPermission": "Allow AttendEase to access your camera.",
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow AttendEase to verify your office location.",
-          "locationAlwaysAndWhenInUsePermission": "Allow AttendEase to verify your location."
+          "locationWhenInUsePermission": "Allow AttendEase to verify your office location."
         }
       ],
       [

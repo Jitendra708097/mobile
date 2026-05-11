@@ -22,7 +22,7 @@ const ERROR_MESSAGES = {
   AUTH_006: 'Your account has been suspended. Contact your admin.',
   AUTH_007: 'Too many login attempts. Please wait 15 minutes.',
   AUTH_008: 'Password must be changed on first login.',
-  AUTH_009: 'This device is not registered. Contact your admin to approve this device.',
+  AUTH_009: 'This device is not registered. Send a device exception request and wait for admin approval.',
   AUTH_012: 'Please enter your email address to continue.',
   AUTH_013: 'Please enter a valid OTP and a new password.',
   AUTH_014: 'The OTP is invalid or expired. Request a new code and try again.',

@@ -21,6 +21,11 @@ export async function checkOutRequest(payload) {
   return response.data.data;
 }
 
+export async function syncAttendanceRequest(records) {
+  const response = await api.post(API_ROUTES.ATTENDANCE_SYNC, { records });
+  return response.data.data;
+}
+
 export async function undoCheckoutRequest() {
   const response = await api.post(API_ROUTES.CHECKOUT_UNDO);
   return response.data.data;

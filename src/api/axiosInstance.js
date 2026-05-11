@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '../utils/constants.js';
 
 // ✅ FIX: Use environment variable instead of hardcoded IP
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.43.81:3000/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.61:3000/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -47,10 +47,15 @@ api.interceptors.response.use(
         }
 
         const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: rotatedRefreshToken } = refreshResponse.data.data;
+        const { accessToken, refreshToken: rotatedRefreshToken, employee } = refreshResponse.data.data;
 
         await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
         await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, rotatedRefreshToken);
+        if (employee) {
+          await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(employee));
+          const { default: useAuthStore } = await import('../store/authStore.js');
+          useAuthStore.setState({ employee, user: employee });
+        }
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);

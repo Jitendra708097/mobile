@@ -8,8 +8,9 @@
  */
 
 import React, { useEffect } from 'react';
-import {  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,} from 'react-native';
+import {  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl,} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import useNotificationStore from '../../store/notificationStore.js';
 import { EmptyState }       from '../../components/common/CommonComponents.jsx';
@@ -17,11 +18,18 @@ import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
-import { NOTIFICATION_TYPES } from '../../utils/constants.js';
 
 
 const NotificationItem = ({ item, onPress }) => {
-  const icon = NOTIFICATION_TYPES[item.type] || '📢';
+  const icon = {
+    leave_approved: 'checkmark-circle-outline',
+    leave_rejected: 'close-circle-outline',
+    regularisation_approved: 'clipboard-outline',
+    regularisation_rejected: 'alert-circle-outline',
+    checkin_reminder: 'log-in-outline',
+    checkout_reminder: 'log-out-outline',
+    general: 'notifications-outline',
+  }[item.type] || 'notifications-outline';
 
   return (
     <TouchableOpacity
@@ -33,7 +41,7 @@ const NotificationItem = ({ item, onPress }) => {
       {!item.isRead && <View style={styles.unreadBar} />}
 
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>{icon}</Text>
+        <Ionicons name={icon} size={20} color={colors.accent} />
       </View>
 
       <View style={styles.textBlock}>
@@ -75,8 +83,10 @@ const NotificationsScreen = ({ navigation }) => {
     if (!isLoading && hasMore) loadMore(false);
   };
 
+  const handleRefresh = () => loadMore(true);
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       {/* Mark all read link */}
       <View style={styles.header}>
         <TouchableOpacity onPress={markAllAsRead}>
@@ -95,7 +105,7 @@ const NotificationsScreen = ({ navigation }) => {
         ListEmptyComponent={
           !isLoading && (
             <EmptyState
-              emoji="🔔"
+              icon="N"
               title="No notifications yet"
               subtitle="Attendance reminders and approvals will appear here"
             />
@@ -108,6 +118,7 @@ const NotificationsScreen = ({ navigation }) => {
         }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: spacing['2xl'] }}
+        refreshControl={<RefreshControl refreshing={isLoading && notifications.length > 0} onRefresh={handleRefresh} />}
       />
     </SafeAreaView>
   );
@@ -165,8 +176,6 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
     marginRight:     spacing.sm,
   },
-  icon: { fontSize: 20 },
-
   textBlock: { flex: 1 },
   itemTitle: {
     fontFamily:   typography.fontMedium,

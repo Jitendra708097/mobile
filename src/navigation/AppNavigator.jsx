@@ -30,9 +30,16 @@ import useNotificationStore     from '../store/notificationStore.js';
 import AuthNavigator            from './AuthNavigator.jsx';
 import MainNavigator            from './MainNavigator.jsx';
 import { colors }               from '../theme/colors.js';
-import { setupPushNotifications, addForegroundNotificationListener } from '../services/notificationService.js';
+import {
+  setupPushNotifications,
+  addForegroundNotificationListener,
+  addNotificationResponseListener,
+  addPushTokenRefreshListener,
+  getLastNotificationResponse,
+} from '../services/notificationService.js';
 import { getDeviceId }          from '../services/deviceService.js';
 import useAppState              from '../hooks/useAppState.js';
+import { navigationRef, navigateFromNotificationAction } from './navigationService.js';
 
 const AppNavigator = () => {
   const hydrate        = useAuthStore((s) => s.hydrate);
@@ -40,6 +47,7 @@ const AppNavigator = () => {
   const hydrateQueue   = useOfflineQueueStore((s) => s.hydrate);
   const addNotification= useNotificationStore((s) => s.addIncomingNotification);
   const [isBooting, setIsBooting] = useState(true);
+  const [deviceId, setDeviceId] = useState(null);
 
   // Boot sequence
   useEffect(() => {
@@ -49,8 +57,9 @@ const AppNavigator = () => {
         await hydrateQueue();
 
         // Setup push notifications
-        const deviceId = await getDeviceId();
-        await setupPushNotifications(deviceId);
+        const resolvedDeviceId = await getDeviceId();
+        setDeviceId(resolvedDeviceId);
+        await setupPushNotifications(resolvedDeviceId);
       } finally {
         setIsBooting(false);
       }
@@ -61,16 +70,42 @@ const AppNavigator = () => {
   // Foreground push notification listener
   useEffect(() => {
     const sub = addForegroundNotificationListener((notification) => {
+      const data = notification.request.content.data || {};
       addNotification({
         id:        notification.request.identifier,
         title:     notification.request.content.title,
         body:      notification.request.content.body,
+        actionUrl: data.action_url || data.actionUrl || '',
+        data,
         isRead:    false,
         createdAt: new Date().toISOString(),
       });
     });
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    const sub = addNotificationResponseListener((response) => {
+      const data = response.notification.request.content.data || {};
+      navigateFromNotificationAction(data.action_url || data.actionUrl);
+    });
+
+    getLastNotificationResponse().then((response) => {
+      const data = response?.notification?.request?.content?.data || {};
+      navigateFromNotificationAction(data.action_url || data.actionUrl);
+    }).catch(() => {});
+
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!deviceId) {
+      return undefined;
+    }
+
+    const sub = addPushTokenRefreshListener(deviceId);
+    return () => sub.remove();
+  }, [deviceId]);
 
   // App state hook (background → foreground sync)
   useAppState();
@@ -87,7 +122,7 @@ const AppNavigator = () => {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
           {/* {isAuthenticated ? <AuthNavigator /> : <MainNavigator />} */}
         </NavigationContainer>

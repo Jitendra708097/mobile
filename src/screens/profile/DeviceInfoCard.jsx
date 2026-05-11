@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
@@ -33,7 +34,7 @@ const DeviceInfoCard = ({ registeredAt }) => {
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.deviceIcon}>📱</Text>
+        <Ionicons name="phone-portrait-outline" size={18} color={colors.accent} style={styles.deviceIcon} />
         <Text style={styles.heading}>Registered Device</Text>
       </View>
 
@@ -46,7 +47,7 @@ const DeviceInfoCard = ({ registeredAt }) => {
 
       {/* Trust note */}
       <View style={styles.note}>
-        <Text style={styles.noteIcon}>🔒</Text>
+        <Ionicons name="shield-checkmark-outline" size={16} color={colors.accent} style={styles.noteIcon} />
         <Text style={styles.noteText}>
           Attendance can only be marked from this device.
           Contact your admin if you need to change it.
@@ -70,7 +71,6 @@ const styles = StyleSheet.create({
     marginBottom:   spacing.base,
   },
   deviceIcon: {
-    fontSize:    20,
     marginRight: spacing.sm,
   },
   heading: {
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     padding:        spacing.sm,
   },
   noteIcon: {
-    fontSize:    14,
     marginRight: spacing.sm,
     marginTop:   1,
   },

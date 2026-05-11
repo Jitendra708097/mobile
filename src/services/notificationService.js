@@ -94,11 +94,26 @@ export const registerTokenWithBackend = async (fcmToken, deviceId) => {
   try {
     await api.post(API_ROUTES.NOTIFICATIONS_REGISTER_TOKEN, {
       fcmToken,
+      fcm_token: fcmToken,
       deviceId,
       platform: Platform.OS,
     });
   } catch {
     // Non-critical — silently fail, will retry on next launch
+  }
+};
+
+export const deregisterTokenWithBackend = async (fcmToken) => {
+  try {
+    if (!fcmToken) return;
+    await api.delete(API_ROUTES.NOTIFICATIONS_REGISTER_TOKEN, {
+      data: {
+        fcmToken,
+        fcm_token: fcmToken,
+      },
+    });
+  } catch {
+    // Non-critical on logout.
   }
 };
 
@@ -131,6 +146,13 @@ export const setupPushNotifications = async (deviceId) => {
   return { token: fcmToken, granted: true };
 };
 
+export const addPushTokenRefreshListener = (deviceId) =>
+  Notifications.addPushTokenListener(async ({ data }) => {
+    if (data && deviceId) {
+      await registerTokenWithBackend(data, deviceId);
+    }
+  });
+
 /**
  * Add a listener for notifications received while app is in the foreground.
  * @param {function} handler
@@ -146,6 +168,9 @@ export const addForegroundNotificationListener = (handler) =>
  */
 export const addNotificationResponseListener = (handler) =>
   Notifications.addNotificationResponseReceivedListener(handler);
+
+export const getLastNotificationResponse = () =>
+  Notifications.getLastNotificationResponseAsync();
 
 /**
  * Set the app badge count.
@@ -172,5 +197,15 @@ export const markNotificationsRead = async (ids) => {
 
 export const markAllNotificationsRead = async () => {
   const response = await api.post(API_ROUTES.NOTIFICATIONS_READ_ALL);
+  return response.data.data;
+};
+
+export const fetchNotificationPreferences = async () => {
+  const response = await api.get(API_ROUTES.NOTIFICATION_PREFERENCES);
+  return response.data.data;
+};
+
+export const updateNotificationPreferences = async (preferences) => {
+  const response = await api.patch(API_ROUTES.NOTIFICATION_PREFERENCES, preferences);
   return response.data.data;
 };

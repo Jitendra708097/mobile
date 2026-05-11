@@ -21,6 +21,9 @@ import { SESSION }     from '../../utils/constants.js';
  * @param {number} props.sessionsToday      - Sessions used today
  * @param {string} [props.todayStatus]      - e.g. 'present', 'absent'
  * @param {string} [props.firstCheckInTime] - ISO string of first check-in
+ * @param {string} [props.lastCheckOutTime] - ISO string of last check-out
+ * @param {boolean}[props.isActive]         - Whether a session is currently open
+ * @param {string} [props.timezone]         - Org timezone
  * @param {boolean}[props.isLate]           - Late flag
  */
 const TodaySummaryCard = ({
@@ -28,11 +31,20 @@ const TodaySummaryCard = ({
   sessionsToday   = 0,
   todayStatus,
   firstCheckInTime,
+  lastCheckOutTime,
+  isActive       = false,
+  timezone       = 'Asia/Kolkata',
   isLate          = false,
+  maxSessionsPerDay = SESSION.MAX_SESSIONS_PER_DAY,
 }) => {
   return (
     <AppCard style={styles.card}>
-      <Text style={styles.heading}>Today's Summary</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.heading}>Today's Summary</Text>
+        {todayStatus ? (
+          <StatusBadge status={isLate ? 'late' : todayStatus} size="sm" />
+        ) : null}
+      </View>
 
       {/* Main worked time */}
       <Text style={styles.workedTime}>
@@ -43,25 +55,23 @@ const TodaySummaryCard = ({
       {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.stat}>
+          <Text style={styles.statValue}>{firstCheckInTime ? formatTime(firstCheckInTime, timezone) : '--:--'}</Text>
+          <Text style={styles.statLabel}>Check-in</Text>
+        </View>
+
+        <View style={[styles.stat, styles.statDivider]}>
+          <Text style={[styles.statValue, isActive && styles.activeValue]}>
+            {isActive ? 'Active' : lastCheckOutTime ? formatTime(lastCheckOutTime, timezone) : '--:--'}
+          </Text>
+          <Text style={styles.statLabel}>Check-out</Text>
+        </View>
+
+        <View style={[styles.stat, styles.statDivider]}>
           <Text style={styles.statValue}>
-            {sessionsToday}/{SESSION.MAX_SESSIONS_PER_DAY}
+            {sessionsToday}/{maxSessionsPerDay}
           </Text>
           <Text style={styles.statLabel}>Sessions</Text>
         </View>
-
-        {firstCheckInTime && (
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{formatTime(firstCheckInTime)}</Text>
-            <Text style={styles.statLabel}>First Check-in</Text>
-          </View>
-        )}
-
-        {todayStatus && (
-          <View style={styles.stat}>
-            <StatusBadge status={isLate ? 'late' : todayStatus} size="sm" />
-            <Text style={styles.statLabel}>Status</Text>
-          </View>
-        )}
       </View>
     </AppCard>
   );
@@ -69,14 +79,23 @@ const TodaySummaryCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    marginTop: spacing.base,
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.base,
     alignItems: 'center',
   },
+  headerRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   heading: {
+    flex: 1,
     fontFamily:   typography.fontSemiBold,
     fontSize:     typography.sm,
     color:        colors.textSecondary,
-    marginBottom: spacing.sm,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -90,30 +109,44 @@ const styles = StyleSheet.create({
     fontFamily:  typography.fontRegular,
     fontSize:    typography.sm,
     color:       colors.textMuted,
-    marginBottom: spacing.base,
+    marginBottom: spacing.lg,
   },
   statsRow: {
     flexDirection:   'row',
-    justifyContent:  'space-around',
+    justifyContent:  'space-between',
     width:           '100%',
     borderTopWidth:  1,
     borderTopColor:  colors.border,
-    paddingTop:      spacing.base,
+    paddingTop:      spacing.md,
   },
   stat: {
     alignItems:   'center',
     flex:          1,
+    minWidth:      0,
+    paddingHorizontal: spacing.xs,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  statDivider: {
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
   },
   statValue: {
     fontFamily:   typography.fontMonoMed,
     fontSize:     typography.base,
     color:        colors.textPrimary,
     marginBottom: spacing.xs,
+    textAlign:    'center',
+  },
+  activeValue: {
+    fontFamily: typography.fontSemiBold,
+    color: colors.success,
   },
   statLabel: {
     fontFamily: typography.fontRegular,
     fontSize:   typography.xs,
     color:      colors.textMuted,
+    textAlign:  'center',
   },
 });
 

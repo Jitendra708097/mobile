@@ -6,7 +6,7 @@ export async function loginRequest(payload) {
 }
 
 export async function refreshRequest(refreshToken) {
-  const response = await api.post('/auth/refresh', { refreshToken });
+  const response = await api.post('/auth/refresh', { refreshToken }, { skipAuth: true });
   return response.data.data;
 }
 

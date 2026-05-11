@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/axiosInstance.js';
 import useAuthStore from '../../store/authStore.js';
 import AppButton from '../../components/common/AppButton.jsx';
@@ -180,7 +181,7 @@ const FaceEnrollScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.permissionBlock}>
-          <Text style={styles.permEmoji}>Camera</Text>
+          <Ionicons name="camera-outline" size={44} color={colors.textPrimary} style={styles.permIcon} />
           <Text style={styles.permTitle}>Camera Access Needed</Text>
           <Text style={styles.permSub}>AttendEase needs camera access to enroll your face.</Text>
           <AppButton label="Grant Permission" onPress={requestPermission} style={{ marginTop: spacing.xl }} />
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
     padding: spacing['2xl'],
     backgroundColor: colors.bgPrimary,
   },
-  permEmoji: { fontSize: 40, marginBottom: spacing.base, color: colors.textPrimary },
+  permIcon: { marginBottom: spacing.base },
   permTitle: {
     fontFamily: typography.fontBold,
     fontSize: typography.xl,

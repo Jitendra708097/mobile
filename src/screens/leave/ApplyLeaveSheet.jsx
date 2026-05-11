@@ -54,21 +54,46 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
   const isBalanceOk     = !selectedBalance || workingDays <= selectedBalance.remaining;
 
   const reset = () => {
-    setFromDate(''); setToDate(''); setReason('');
-    setHalfDay(false); setError('');
+    setFromDate(''); 
+    setToDate(''); 
+    setReason('');
+    setHalfDay(false);
+    setError('');
   };
 
-  const handleClose = () => { reset(); onClose?.(); };
+  const handleClose = () => { 
+    reset();
+    onClose?.(); 
+  };
 
   const handleSubmit = async () => {
     setError('');
-    if (!fromDate)      { setError('Start date is required.'); return; }
-    if (!toDate)        { setError('End date is required.'); return; }
-    if (new Date(fromDate) > new Date(toDate)) {
-      setError('End date must be after start date.'); return;
+    if (!fromDate)
+    { 
+      setError('Start date is required.'); 
+      return; 
     }
-    if (!reason.trim()) { setError('Reason is required.'); return; }
-    if (!isBalanceOk)   { setError(`Insufficient ${LEAVE_TYPE_LABELS[leaveType]} balance.`); return; }
+
+    if (!toDate)      
+    { 
+      setError('End date is required.'); 
+      return; 
+    }
+
+    if (new Date(fromDate) > new Date(toDate)) {
+      setError('End date must be after start date.'); 
+      return;
+    }
+
+    if (!reason.trim()) { 
+      setError('Reason is required.');
+      return; 
+    }
+
+    if (!isBalanceOk)   { 
+      setError(`Insufficient ${LEAVE_TYPE_LABELS[leaveType]} balance.`); 
+      return; 
+    }
 
     setLoading(true);
     try {
@@ -126,7 +151,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
               styles.balanceValue,
               isBalanceOk ? styles.balanceOk : styles.balanceLow,
             ]}>
-              {selectedBalance.remaining} days {isBalanceOk ? '✅' : '⚠️'}
+              {selectedBalance.remaining} days {isBalanceOk ? 'available' : 'low balance'}
             </Text>
           </View>
         )}

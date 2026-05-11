@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
@@ -26,7 +27,7 @@ const CooldownTimer = ({ cooldownEndsAt }) => {
       {/* Disabled grey button */}
       <View style={styles.button}>
         <View style={styles.content}>
-          <Text style={styles.icon}>⏳</Text>
+          <Ionicons name="hourglass-outline" size={20} color={colors.cooldownGrey} style={styles.icon} />
           <Text style={styles.label}>
             {isComplete ? 'Ready...' : `Wait  ${formatted}`}
           </Text>
@@ -61,9 +62,7 @@ const styles = StyleSheet.create({
     alignItems:    'center',
   },
   icon: {
-    fontSize:    18,
     marginRight: spacing.sm,
-    color:       colors.cooldownGrey,
   },
   label: {
     fontFamily: typography.fontMonoMed,

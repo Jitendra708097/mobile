@@ -8,11 +8,8 @@
 
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
@@ -23,10 +20,11 @@ import { SESSION }    from '../../utils/constants.js';
  * @param {object}  props
  * @param {function}props.onPress          - Opens ConfirmCheckoutSheet
  * @param {string}  props.sessionStartTime - ISO string of check-in time
+ * @param {string}  [props.timezone]       - Org timezone
  * @param {number}  props.sessionMinutes   - Minutes elapsed in current session
  * @param {boolean} [props.loading]
  */
-const CheckOutButton = ({ onPress, sessionStartTime, sessionMinutes = 0, loading = false }) => {
+const CheckOutButton = ({ onPress, sessionStartTime, timezone = 'Asia/Kolkata', sessionMinutes = 0, loading = false, minSessionMinutes = SESSION.MIN_SESSION_MINUTES }) => {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -36,7 +34,7 @@ const CheckOutButton = ({ onPress, sessionStartTime, sessionMinutes = 0, loading
   const handlePressIn  = () => { scale.value = withSpring(0.96, { damping: 12 }); };
   const handlePressOut = () => { scale.value = withSpring(1.0,  { damping: 12 }); };
 
-  const belowMinimum = sessionMinutes > 0 && sessionMinutes < SESSION.MIN_SESSION_MINUTES;
+  const belowMinimum = sessionMinutes > 0 && sessionMinutes < minSessionMinutes;
 
   return (
     <View style={styles.wrapper}>
@@ -52,7 +50,7 @@ const CheckOutButton = ({ onPress, sessionStartTime, sessionMinutes = 0, loading
           accessibilityLabel="Check Out"
         >
           <View style={styles.content}>
-            <Text style={styles.icon}>⏹</Text>
+            <Ionicons name="log-out-outline" size={21} color={colors.textInverse} style={styles.icon} />
             <Text style={styles.label}>Check Out</Text>
           </View>
         </TouchableOpacity>
@@ -61,13 +59,13 @@ const CheckOutButton = ({ onPress, sessionStartTime, sessionMinutes = 0, loading
       {/* Live session timer below button */}
       <View style={styles.timerRow}>
         <Text style={styles.timerLabel}>Session: </Text>
-        <SessionTimer startTime={sessionStartTime} />
+        <SessionTimer startTime={sessionStartTime} timezone={timezone} />
       </View>
 
       {belowMinimum && (
         <View style={styles.warningRow}>
           <Text style={styles.warningText}>
-            ⚠ Min {SESSION.MIN_SESSION_MINUTES} min required for this session
+            Minimum {minSessionMinutes} min required for this session
           </Text>
         </View>
       )}
@@ -95,8 +93,6 @@ const styles = StyleSheet.create({
     alignItems:    'center',
   },
   icon: {
-    fontSize:    20,
-    color:       colors.textInverse,
     marginRight: spacing.sm,
   },
   label: {

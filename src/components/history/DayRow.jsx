@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
@@ -45,11 +46,11 @@ const DayRow = ({ record, onPress }) => {
       {/* Center — times */}
       <View style={styles.middle}>
         <View style={styles.timeRow}>
-          <Text style={styles.timeLabel}>IN  </Text>
+          <Ionicons name="log-in-outline" size={15} color={colors.textMuted} style={styles.timeIcon} />
           <Text style={styles.timeValue}>{firstCheckIn ? formatTime(firstCheckIn) : '—'}</Text>
         </View>
         <View style={styles.timeRow}>
-          <Text style={styles.timeLabel}>OUT </Text>
+          <Ionicons name="log-out-outline" size={15} color={colors.textMuted} style={styles.timeIcon} />
           <Text style={styles.timeValue}>{lastCheckOut ? formatTime(lastCheckOut) : '—'}</Text>
         </View>
       </View>
@@ -110,10 +111,7 @@ const styles = StyleSheet.create({
     alignItems:     'center',
     marginBottom:   2,
   },
-  timeLabel: {
-    fontFamily: typography.fontRegular,
-    fontSize:   typography.xs,
-    color:      colors.textMuted,
+  timeIcon: {
     width:      28,
   },
   timeValue: {

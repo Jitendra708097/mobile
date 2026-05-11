@@ -7,6 +7,7 @@
 
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors.js';
 import { typography } from '../theme/typography.js';
 import { spacing } from '../theme/spacing.js';
@@ -27,7 +28,7 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error details for debugging
-    console.error('🔴 Error Boundary caught:', error);
+    console.error('Error Boundary caught:', error);
     console.error('Error Stack:', errorInfo.componentStack);
     
     this.setState({
@@ -50,7 +51,9 @@ class ErrorBoundary extends Component {
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.content}>
-              <Text style={styles.emoji}>⚠️</Text>
+              <View style={styles.errorIcon}>
+                <Ionicons name="alert-circle-outline" size={34} color={colors.danger} />
+              </View>
               <Text style={styles.title}>Oops! Something went wrong</Text>
               
               <View style={styles.messageBox}>
@@ -95,8 +98,13 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
   },
-  emoji: {
-    fontSize: 64,
+  errorIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.dangerLight,
     marginBottom: spacing.lg,
   },
   title: {
@@ -139,7 +147,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
     borderRadius: 12,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.base,
