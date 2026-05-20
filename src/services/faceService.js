@@ -220,9 +220,27 @@ export const quickFaceCheck = async (imageUri, options = {}) => {
     const faces = await detectFacesInImage(imageUri, fast);
 
     if (!faces || faces.length === 0) return { valid: false, reason: 'No face detected. Please look at camera.' };
-    if (faces.length > 1)            return { valid: false, reason: 'Multiple faces. Only you should be in frame.' };
 
-    const face = faces[0];
+    const rankedFaces = faces
+      .filter((face) => face?.frame?.width && face?.frame?.height)
+      .map((face) => ({
+        face,
+        area: Number(face.frame.width || 0) * Number(face.frame.height || 0),
+      }))
+      .sort((left, right) => right.area - left.area);
+
+    const primary = rankedFaces[0];
+    if (!primary) return { valid: false, reason: 'No face detected. Please look at camera.' };
+
+    const significantSecondaryFaces = rankedFaces.filter(
+      (item, index) => index > 0 && item.area >= Math.max(primary.area * 0.28, 4500)
+    );
+
+    if (significantSecondaryFaces.length > 0) {
+      return { valid: false, reason: 'Multiple faces. Only you should be in frame.' };
+    }
+
+    const face = primary.face;
     const area = face.frame.width * face.frame.height;
 
     if (area < 8000) return { valid: false, reason: 'Too far — move closer.' };

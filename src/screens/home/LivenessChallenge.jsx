@@ -7,7 +7,7 @@ import useNetworkStatus from '../../hooks/useNetworkStatus.js';
 import useCountdown from '../../hooks/useCountdown.js';
 import AppButton from '../../components/common/AppButton.jsx';
 import { LoadingOverlay, ErrorMessage } from '../../components/common/CommonComponents.jsx';
-import { quickFaceCheck, detectChallengeCompletion, compressSelfie, deleteTempImage, extractFaceEmbedding } from '../../services/faceService.js';
+import { quickFaceCheck, detectChallengeCompletion, compressSelfie, deleteTempImage, validateFaceQuality } from '../../services/faceService.js';
 import { getVerifiedLocation, getLocationErrorMessage } from '../../services/locationService.js';
 import { LIVENESS_CHALLENGE_LABELS, SESSION } from '../../utils/constants.js';
 import { colors } from '../../theme/colors.js';
@@ -70,6 +70,8 @@ const LivenessChallenge = ({ navigation, route }) => {
   const isDetecting = useRef(false);
   const hasCompleted = useRef(false);
   const hasInitialized = useRef(false);
+  const submitRef = useRef(false);
+  const faceIssueRef = useRef({ reason: '', count: 0 });
   const challengeRef = useRef(null);
   const challengeProgressRef = useRef({});
   const { formatted: challengeCountdown, isComplete: challengeTimedOut } = useCountdown(
@@ -155,7 +157,9 @@ const LivenessChallenge = ({ navigation, route }) => {
     setActiveChallenge(null);
     setChallengeEndsAt(null);
     challengeProgressRef.current = {};
+    faceIssueRef.current = { reason: '', count: 0 };
     hasCompleted.current = false;
+    submitRef.current = false;
     setStage('face');
 
     if (!permission?.granted) {
@@ -245,10 +249,18 @@ const LivenessChallenge = ({ navigation, route }) => {
         });
         if (!result.valid) {
           setStage('face');
-          setHint(result.reason || 'Keep your face inside the guide');
+          const reason = result.reason || 'Keep your face inside the guide';
+          const previous = faceIssueRef.current;
+          const count = previous.reason === reason ? previous.count + 1 : 1;
+          faceIssueRef.current = { reason, count };
+          const requiredCount = reason.includes('Multiple faces') ? 3 : 2;
+          if (count >= requiredCount) {
+            setHint(reason);
+          }
           return;
         }
 
+        faceIssueRef.current = { reason: '', count: 0 };
         setStage('challenge');
 
         const completion = detectChallengeCompletion(
@@ -277,6 +289,11 @@ const LivenessChallenge = ({ navigation, route }) => {
   };
 
   const captureAndSubmit = async () => {
+    if (submitRef.current) {
+      return;
+    }
+
+    submitRef.current = true;
     setIsBusy(true);
     setHint('Capturing selfie...');
     setStage('capture');
@@ -292,8 +309,11 @@ const LivenessChallenge = ({ navigation, route }) => {
       compressedUri = compressed.uri;
       await deleteTempImage(photo.uri);
 
-      setHint('Preparing face verification...');
-      const faceEmbedding = await extractFaceEmbedding(compressed.uri);
+      setHint('Checking final selfie...');
+      const finalFace = await validateFaceQuality(compressed.uri);
+      if (!finalFace.valid) {
+        throw new Error(finalFace.reason || 'Please capture a clearer selfie.');
+      }
 
       setHint(workflowCopy.locationHint);
       setStage('location');
@@ -310,14 +330,14 @@ const LivenessChallenge = ({ navigation, route }) => {
         ? await checkOut({
             isFinalCheckout,
             selfieBase64: compressed.base64,
-            faceEmbedding,
+            faceEmbedding: null,
             location,
             challengeToken: submitChallenge.challengeToken,
             isOnline,
           })
         : await checkIn({
             selfieBase64: compressed.base64,
-            faceEmbedding,
+            faceEmbedding: null,
             location,
             challengeToken: submitChallenge.challengeToken,
             isOnline,
@@ -343,6 +363,7 @@ const LivenessChallenge = ({ navigation, route }) => {
       setLocalError(message || workflowCopy.errorMessage);
       challengeProgressRef.current = {};
       hasCompleted.current = false;
+      submitRef.current = false;
       setActiveChallenge(null);
       setChallengeEndsAt(null);
       setStage('face');

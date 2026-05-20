@@ -14,6 +14,9 @@ const useAuthStore = create((set, get) => ({
   refreshToken: null,
   isAuthenticated: false,
   isLoading: true,
+  isLoggingIn: false,
+  isChangingPassword: false,
+  isLoggingOut: false,
   error: null,
 
   hydrate: async () => {
@@ -65,7 +68,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   login: async (email, password, deviceIdOverride) => {
-    set({ isLoading: true, error: null });
+    set({ isLoggingIn: true, error: null });
 
     try {
       const devicePayload = await getDevicePayload();
@@ -85,7 +88,7 @@ const useAuthStore = create((set, get) => ({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         isAuthenticated: true,
-        isLoading: false,
+        isLoggingIn: false,
       });
 
       // ✅ SECURITY FIX: Store password temporarily in secure storage, not in Zustand
@@ -94,13 +97,13 @@ const useAuthStore = create((set, get) => ({
       return { success: true, employee: data.employee };
     } catch (error) {
       const message = parseError(error);
-      set({ error: message, isLoading: false });
+      set({ error: message, isLoggingIn: false });
       return { success: false, error: message };
     }
   },
 
   setPassword: async (newPassword) => {
-    set({ isLoading: true, error: null });
+    set({ isChangingPassword: true, error: null });
 
     try {
       // ✅ SECURITY FIX: Retrieve from secure storage, not Zustand
@@ -128,19 +131,19 @@ const useAuthStore = create((set, get) => ({
       set({
         employee: updatedEmployee,
         user: updatedEmployee,
-        isLoading: false,
+        isChangingPassword: false,
       });
 
       return { success: true };
     } catch (error) {
       const message = parseError(error);
-      set({ error: message, isLoading: false });
+      set({ error: message, isChangingPassword: false });
       return { success: false, error: message };
     }
   },
 
   changePassword: async (currentPassword, newPassword) => {
-    set({ isLoading: true, error: null });
+    set({ isChangingPassword: true, error: null });
 
     try {
       const data = await changePasswordRequest({ currentPassword, newPassword });
@@ -156,13 +159,13 @@ const useAuthStore = create((set, get) => ({
       set({
         employee: updatedEmployee,
         user: updatedEmployee,
-        isLoading: false,
+        isChangingPassword: false,
       });
 
       return { success: true };
     } catch (error) {
       const message = parseError(error);
-      set({ error: message, isLoading: false });
+      set({ error: message, isChangingPassword: false });
       return { success: false, error: message };
     }
   },
@@ -243,15 +246,19 @@ const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
+    set({ isLoggingOut: true, error: null });
+
     try {
       const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-      const fcmToken = await getFCMToken();
-      await deregisterTokenWithBackend(fcmToken);
+      const fcmToken = await getFCMToken().catch(() => null);
+      if (fcmToken) {
+        await deregisterTokenWithBackend(fcmToken).catch(() => {});
+      }
 
       if (refreshToken) {
-        await logoutRequest(refreshToken).catch(() => {});
+        await logoutRequest(refreshToken);
       }
-    } finally {
+
       await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
@@ -265,8 +272,15 @@ const useAuthStore = create((set, get) => ({
         refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
+        isLoggingOut: false,
         error: null,
       });
+
+      return { success: true };
+    } catch (error) {
+      const message = parseError(error) || 'Sign out failed. Please try again.';
+      set({ isLoggingOut: false, error: message });
+      return { success: false, error: message };
     }
   },
 

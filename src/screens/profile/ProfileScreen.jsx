@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import useAuthStore        from '../../store/authStore.js';
 import AppButton           from '../../components/common/AppButton.jsx';
-import { Avatar, Divider } from '../../components/common/CommonComponents.jsx';
+import { Avatar, Divider, ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import ChangePasswordSheet from './ChangePasswordSheet.jsx';
 import DeviceInfoCard      from './DeviceInfoCard.jsx';
 import { fetchNotificationPreferences, updateNotificationPreferences } from '../../services/notificationService.js';
@@ -31,7 +31,9 @@ import { formatDate }      from '../../utils/formatters.js';
 const ProfileScreen = ({ navigation }) => {
   const user          = useAuthStore((s) => s.user);
   const logout        = useAuthStore((s) => s.logout);
-  const isLoading     = useAuthStore((s) => s.isLoading);
+  const isLoggingOut  = useAuthStore((s) => s.isLoggingOut);
+  const storeError    = useAuthStore((s) => s.error);
+  const clearError    = useAuthStore((s) => s.clearError);
 
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -81,6 +83,15 @@ const ProfileScreen = ({ navigation }) => {
     } finally {
       setSavingNotif(false);
     }
+  };
+
+  const openLogoutSheet = () => {
+    clearError();
+    logoutRef.current?.expand();
+  };
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   const changePassRef = useRef(null);
@@ -208,7 +219,8 @@ const ProfileScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.actionRow}
-            onPress={() => logoutRef.current?.expand()}
+            onPress={openLogoutSheet}
+            disabled={isLoggingOut}
           >
             <Text style={[styles.actionLabel, styles.logoutLabel]}>Sign Out</Text>
           </TouchableOpacity>
@@ -225,26 +237,28 @@ const ProfileScreen = ({ navigation }) => {
       <BottomSheet
         ref={logoutRef}
         index={-1}
-        snapPoints={['32%']}
-        enablePanDownToClose
+        snapPoints={['40%']}
+        enablePanDownToClose={!isLoggingOut}
         backgroundStyle={{ backgroundColor: colors.bgSurface }}
         handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
       >
         <BottomSheetView style={styles.logoutSheet}>
           <Text style={styles.logoutTitle}>Sign out?</Text>
           <Text style={styles.logoutSub}>You'll need to sign in again to mark attendance.</Text>
+          {storeError ? <ErrorMessage message={storeError} style={styles.logoutError} /> : null}
           <View style={styles.logoutBtns}>
             <AppButton
               label="Cancel"
               onPress={() => logoutRef.current?.close()}
               variant="outline"
+              disabled={isLoggingOut}
               style={{ flex: 1 }}
             />
             <AppButton
               label="Sign Out"
-              onPress={logout}
+              onPress={handleLogout}
               variant="danger"
-              loading={isLoading}
+              loading={isLoggingOut}
               style={{ flex: 1 }}
             />
           </View>
@@ -377,6 +391,7 @@ const styles = StyleSheet.create({
     color:        colors.textSecondary,
     marginBottom: spacing.xl,
   },
+  logoutError: { marginBottom: spacing.base },
   logoutBtns: { flexDirection: 'row', gap: spacing.sm },
 });
 

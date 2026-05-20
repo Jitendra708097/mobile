@@ -36,6 +36,7 @@ const TodaySummaryCard = ({
   timezone       = 'Asia/Kolkata',
   isLate          = false,
   maxSessionsPerDay = SESSION.MAX_SESSIONS_PER_DAY,
+  hasPendingSync = false,
 }) => {
   return (
     <AppCard style={styles.card}>
@@ -51,6 +52,11 @@ const TodaySummaryCard = ({
         {formatDuration(totalWorkedMins)}
       </Text>
       <Text style={styles.workedLabel}>total worked</Text>
+      {hasPendingSync ? (
+        <View style={styles.pendingPill}>
+          <Text style={styles.pendingText}>Pending sync</Text>
+        </View>
+      ) : null}
 
       {/* Stats row */}
       <View style={styles.statsRow}>
@@ -110,6 +116,21 @@ const styles = StyleSheet.create({
     fontSize:    typography.sm,
     color:       colors.textMuted,
     marginBottom: spacing.lg,
+  },
+  pendingPill: {
+    borderRadius: 999,
+    backgroundColor: colors.warningLight,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.base,
+  },
+  pendingText: {
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.xs,
+    color: colors.warning,
   },
   statsRow: {
     flexDirection:   'row',

@@ -24,9 +24,12 @@ const FaceEnrollScreen = ({ navigation }) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [captureCountdown, setCaptureCountdown] = useState(null);
 
   const cameraRef = useRef(null);
   const detectRef = useRef(null);
+  const countdownRef = useRef(null);
+  const captureTimeoutRef = useRef(null);
   const isDetecting = useRef(false);
 
   useEffect(() => {
@@ -36,6 +39,8 @@ const FaceEnrollScreen = ({ navigation }) => {
 
     return () => {
       clearInterval(detectRef.current);
+      clearInterval(countdownRef.current);
+      clearTimeout(captureTimeoutRef.current);
     };
   }, []);
 
@@ -69,9 +74,24 @@ const FaceEnrollScreen = ({ navigation }) => {
         const result = await quickFaceCheck(snapUri);
         setQuality(result);
 
-        if (result.valid) {
+        if (result.valid && !countdownRef.current && !captureTimeoutRef.current) {
           clearInterval(detectRef.current);
-          await captureAndUpload();
+          setCaptureCountdown(3);
+          setQuality({ valid: true, reason: '' });
+          countdownRef.current = setInterval(() => {
+            setCaptureCountdown((value) => {
+              if (!value || value <= 1) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+                return null;
+              }
+              return value - 1;
+            });
+          }, 1000);
+          captureTimeoutRef.current = setTimeout(() => {
+            captureTimeoutRef.current = null;
+            captureAndUpload();
+          }, 3000);
         }
       } catch (error) {
         setQuality({ valid: false, reason: 'Camera is getting ready. Please hold still.' });
@@ -85,6 +105,11 @@ const FaceEnrollScreen = ({ navigation }) => {
   };
 
   const captureAndUpload = async () => {
+    clearInterval(countdownRef.current);
+    clearTimeout(captureTimeoutRef.current);
+    countdownRef.current = null;
+    captureTimeoutRef.current = null;
+    setCaptureCountdown(null);
     setIsCapturing(true);
     setStatusMsg('Capturing your enrollment selfie...');
 
@@ -106,6 +131,7 @@ const FaceEnrollScreen = ({ navigation }) => {
     } catch (error) {
       setIsUploading(false);
       setIsCapturing(false);
+      setCaptureCountdown(null);
       setStatusMsg('');
       setQuality({ 
         valid: false, 
@@ -198,10 +224,17 @@ const FaceEnrollScreen = ({ navigation }) => {
       <View style={styles.cameraContainer}>
         <CameraView ref={cameraRef} style={styles.camera} facing="front" />
         <View style={styles.ovalGuide} />
+        {captureCountdown ? (
+          <View style={styles.countdownBadge}>
+            <Text style={styles.countdownNumber}>{captureCountdown}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.feedbackBox}>
-        {quality?.valid === false ? (
+        {captureCountdown ? (
+          <Text style={styles.feedbackNeutral}>Face detected. Capturing in {captureCountdown}...</Text>
+        ) : quality?.valid === false ? (
           <Text style={styles.feedbackBad}>{quality.reason}</Text>
         ) : (
           <Text style={styles.feedbackNeutral}>Good lighting and one face only.</Text>
@@ -245,6 +278,25 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.accent,
     borderStyle: 'dashed',
+  },
+  countdownBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '38%',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(13,115,119,0.88)',
+    borderWidth: 2,
+    borderColor: colors.textInverse,
+  },
+  countdownNumber: {
+    fontFamily: typography.fontBold,
+    fontSize: 44,
+    color: colors.textInverse,
+    lineHeight: 52,
   },
   feedbackBox: {
     padding: spacing.base,

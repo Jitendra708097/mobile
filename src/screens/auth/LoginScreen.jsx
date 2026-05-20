@@ -25,7 +25,7 @@ import { validateEmail, validateLoginPassword } from '../../utils/validators.js'
 
 const LoginScreen = ({ navigation, route }) => {
   const login     = useAuthStore((s) => s.login);
-  const isLoading = useAuthStore((s) => s.isLoading);
+  const isLoggingIn = useAuthStore((s) => s.isLoggingIn);
   const storeErr  = useAuthStore((s) => s.error);
   const clearErr  = useAuthStore((s) => s.clearError);
 
@@ -156,7 +156,7 @@ const LoginScreen = ({ navigation, route }) => {
             <AppButton
               label="Sign In"
               onPress={handleLogin}
-              loading={isLoading}
+              loading={isLoggingIn}
               fullWidth
               style={styles.loginBtn}
             />

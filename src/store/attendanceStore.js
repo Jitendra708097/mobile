@@ -62,6 +62,8 @@ const useAttendanceStore = create((set, get) => ({
   hasGeofence: false,
   insidePremise: false,
   currentLocation: null,
+  lastPremiseCheckedAt: null,
+  lastPremiseStatus: null,
   premiseMonitoringInterval: null,
 
   syncWithServer: async () => {
@@ -146,6 +148,7 @@ const useAttendanceStore = create((set, get) => ({
         get().selectedDeviceException
       );
       const data = await checkInRequest({
+        clientRequestId: uuidv4(),
         challengeToken,
         captureTimestamp: location.timestamp || Date.now(),
         deviceId,
@@ -232,6 +235,7 @@ const useAttendanceStore = create((set, get) => ({
         get().selectedDeviceException
       );
       const data = await checkOutRequest({
+        clientRequestId: uuidv4(),
         challengeToken,
         captureTimestamp: location.timestamp || Date.now(),
         deviceId,
@@ -355,12 +359,14 @@ const useAttendanceStore = create((set, get) => ({
       };
 
       if (!Array.isArray(branchPolygon) || branchPolygon.length < 3) {
-        set({
-          hasGeofence: false,
-          insidePremise: false,
-          currentLocation,
-        });
-        return { verified: false, inside: null, location: currentLocation };
+      set({
+        hasGeofence: false,
+        insidePremise: false,
+        currentLocation,
+        lastPremiseCheckedAt: new Date().toISOString(),
+        lastPremiseStatus: { verified: false, inside: null },
+      });
+      return { verified: false, inside: null, location: currentLocation };
       }
 
       const point = { lat: location.latitude, lng: location.longitude };
@@ -374,6 +380,14 @@ const useAttendanceStore = create((set, get) => ({
         hasGeofence: true,
         insidePremise: inside,
         currentLocation,
+        lastPremiseCheckedAt: new Date().toISOString(),
+        lastPremiseStatus: {
+          verified: true,
+          inside,
+          insideExact,
+          buffered: !insideExact && inside,
+          distanceToBoundary: Number.isFinite(distanceToBoundary) ? Number(distanceToBoundary.toFixed(2)) : null,
+        },
       });
 
       return {

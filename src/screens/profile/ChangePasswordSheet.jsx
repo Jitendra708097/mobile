@@ -82,7 +82,7 @@ const PasswordField = ({
  */
 const ChangePasswordSheet = ({ sheetRef, onClose }) => {
   const changePassword = useAuthStore((s) => s.changePassword);
-  const isLoading      = useAuthStore((s) => s.isLoading);
+  const isChangingPassword = useAuthStore((s) => s.isChangingPassword);
 
   const [current,  setCurrent]  = useState('');
   const [newPass,  setNewPass]  = useState('');
@@ -199,7 +199,7 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
         <AppButton
           label="Save Password"
           onPress={handleSave}
-          loading={isLoading}
+          loading={isChangingPassword}
           fullWidth
           style={styles.saveBtn}
         />

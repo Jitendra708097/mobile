@@ -56,6 +56,8 @@ const ERROR_MESSAGES = {
   ATT_011: 'Request timestamp is invalid. Please check your phone clock.',
   ATT_012: 'Undo window has expired. Checkout is final.',
   ATT_013: 'Invalid challenge token. Please start again.',
+  ATT_DUPLICATE: 'Attendance is already being processed. Please wait a moment.',
+  KIOSK_BRANCH_MISMATCH: 'Employee belongs to another branch. Please use that branch kiosk.',
 
   // ─── Face ──────────────────────────────────────────────────────────────────
   FACE_001: 'Face verification failed. Please try again in good lighting.',
@@ -65,6 +67,9 @@ const ERROR_MESSAGES = {
   FACE_005: 'Face enrollment failed. Please try again.',
   FACE_006: 'Flat surface detected. Please use your real face.',
   FACE_007: 'Liveness check failed. Please complete the challenge fully.',
+  FACE_008: 'No registered employee face matched in this branch.',
+  FACE_MATCH_FAILED: 'Face verification failed. Please try again in good lighting.',
+  FACE_MULTIPLE: 'Multiple faces detected. Only one person should be in frame.',
 
   // ─── Geo-fence ─────────────────────────────────────────────────────────────
   GEO_001: 'No geo-fence set for this branch. Contact your admin.',

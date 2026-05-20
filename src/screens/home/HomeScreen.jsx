@@ -60,6 +60,7 @@ const HomeScreen = ({ navigation }) => {
   const assessPremiseLocation = useAttendanceStore((s) => s.assessPremiseLocation);
   const branchPolygon    = useAttendanceStore((s) => s.branchPolygon);
   const storedBranchName = useAttendanceStore((s) => s.branchName);
+  const lastPremiseCheckedAt = useAttendanceStore((s) => s.lastPremiseCheckedAt);
 
   const refreshUnread    = useNotificationStore((s) => s.refreshUnreadCount);
   const pendingOfflineCount = useOfflineQueueStore((s) => s.queue.length);
@@ -69,7 +70,7 @@ const HomeScreen = ({ navigation }) => {
 
   const isOnline         = useNetworkStatus();
 
-  const [gpsStatus,  setGpsStatus]  = useState(GPS_STATUS.LOADING);
+  const [gpsStatus,  setGpsStatus]  = useState(GPS_STATUS.IDLE);
   const [branchName, setBranchName] = useState('');
   const [gpsMessage, setGpsMessage] = useState('');
   const [gpsCheckedAt, setGpsCheckedAt] = useState(null);
@@ -86,7 +87,8 @@ const HomeScreen = ({ navigation }) => {
     const init = async () => {
       try {
             await hydrateOfflineQueue();
-            await refreshGps();
+            const branchData = await fetchBranchGeofence();
+            setBranchName(branchData?.name || storedBranchName || '');
             await refreshUnread();
       }  catch (error) {
         console.error('Failed to refresh: ',error);
@@ -111,7 +113,6 @@ const HomeScreen = ({ navigation }) => {
       const locationGranted = await hasLocationPermission();
       if (!locationGranted) {
         await requestLocationPermission();
-        await refreshGps();
       }
     };
 
@@ -120,7 +121,6 @@ const HomeScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      refreshGps();
       refreshUnread();
     }, [refreshUnread])
   );
@@ -141,7 +141,7 @@ const HomeScreen = ({ navigation }) => {
       {
         setGpsMessage('Could not verify your current location. Enable location and retry.');
         setGpsStatus(GPS_STATUS.OUTSIDE);
-        return;
+        return { status: GPS_STATUS.OUTSIDE, message: 'Could not verify your current location. Enable location and retry.' };
       }
 
       const polygon = Array.isArray(branchData?.polygon) ? branchData.polygon : branchPolygon;
@@ -157,34 +157,38 @@ const HomeScreen = ({ navigation }) => {
         if (!insideWithBuffer) {
           setGpsMessage(resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises');
           setGpsStatus(GPS_STATUS.OUTSIDE);
+          return { status: GPS_STATUS.OUTSIDE, message: resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises' };
         }
         else if (!insidePremise)
         {
           setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}. Location verified with low accuracy.` : 'Location verified with low accuracy.');
           setGpsStatus(GPS_STATUS.WEAK);
+          return { status: GPS_STATUS.WEAK };
         }
         else if (accuracy > 50)
         {
           setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}. Location accuracy is low.` : 'Location accuracy is low.');
           setGpsStatus(GPS_STATUS.WEAK);
+          return { status: GPS_STATUS.WEAK };
         }
         else
         {
           setGpsStatus(GPS_STATUS.INSIDE);
+          return { status: GPS_STATUS.INSIDE };
         }
-
-        return;
       }
 
       if (accuracy > 100)
       {
         setGpsMessage('Location accuracy is too low to verify office boundary.');
         setGpsStatus(GPS_STATUS.OUTSIDE);
+        return { status: GPS_STATUS.OUTSIDE, message: 'Location accuracy is too low to verify office boundary.' };
       }
       else
       {
         setGpsMessage('Location detected. Office boundary is not available yet.');
         setGpsStatus(GPS_STATUS.WEAK);
+        return { status: GPS_STATUS.WEAK };
       }
     } finally {
       setIsGpsRefreshing(false);
@@ -249,16 +253,15 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [navigation]);
 
-  const handleCheckInPress = useCallback(() => {
-    if (gpsStatus === GPS_STATUS.LOADING) {
-      Alert.alert('Checking location', 'Please wait while we verify your office location.');
-      return;
-    }
+  const handleCheckInPress = useCallback(async () => {
+    const result = await refreshGps();
+    const nextStatus = result?.status || gpsStatus;
+    const nextMessage = result?.message || gpsMessage;
 
-    if (gpsStatus === GPS_STATUS.OUTSIDE) {
+    if (nextStatus === GPS_STATUS.OUTSIDE) {
       Alert.alert(
         'Move inside office',
-        gpsMessage || 'You need to be inside office premises before marking attendance.',
+        nextMessage || 'You need to be inside office premises before marking attendance.',
         [
           { text: 'Request Correction', onPress: () => navigation.navigate('Regularisation') },
           { text: 'Retry Location', onPress: refreshGps },
@@ -268,7 +271,7 @@ const HomeScreen = ({ navigation }) => {
       return;
     }
 
-    if (gpsStatus === GPS_STATUS.WEAK) {
+    if (nextStatus === GPS_STATUS.WEAK) {
       Alert.alert(
         'Low accuracy location',
         'GPS accuracy is weak. Continue only if you are inside the office premises.',
@@ -326,7 +329,7 @@ const HomeScreen = ({ navigation }) => {
           status={gpsStatus}
           branchName={branchName}
           message={gpsMessage}
-          checkedAt={gpsCheckedAt}
+          checkedAt={lastPremiseCheckedAt || gpsCheckedAt}
           onRetry={refreshGps}
           isRetrying={isGpsRefreshing}
         />
@@ -355,10 +358,10 @@ const HomeScreen = ({ navigation }) => {
           {buttonState === BUTTON_STATES.CHECK_IN && (
             <CheckInButton
               onPress={handleCheckInPress}
-              loading={isSyncing}
-              disabled={gpsStatus === GPS_STATUS.OUTSIDE || gpsStatus === GPS_STATUS.LOADING}
-              label={gpsStatus === GPS_STATUS.OUTSIDE ? 'Move Inside Office' : 'Mark Attendance'}
-              hint={gpsStatus === GPS_STATUS.OUTSIDE ? 'Retry location after you enter the office premises.' : null}
+              loading={isSyncing || isGpsRefreshing}
+              disabled={gpsStatus === GPS_STATUS.LOADING}
+              label={gpsStatus === GPS_STATUS.OUTSIDE ? 'Check Location Again' : 'Mark Attendance'}
+              hint={gpsStatus === GPS_STATUS.IDLE ? 'Location will be verified when you tap.' : gpsStatus === GPS_STATUS.OUTSIDE ? 'Retry after you enter the office premises.' : null}
             />
           )}
 
@@ -391,6 +394,7 @@ const HomeScreen = ({ navigation }) => {
           isActive={Boolean(openSession)}
           timezone={orgTimezone}
           maxSessionsPerDay={maxSessionsPerDay}
+          hasPendingSync={pendingOfflineCount > 0 || Boolean(openSession?.offline)}
         />
 
         {pendingOfflineCount > 0 && (

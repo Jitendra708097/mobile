@@ -16,11 +16,16 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {  useAnimatedStyle,  useSharedValue,  withRepeat,  withTiming,  Easing} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
 
+dayjs.extend(relativeTime);
+
 export const GPS_STATUS = {
+  IDLE:     'idle',
   LOADING:  'loading',
   INSIDE:   'inside',
   WEAK:     'weak',
@@ -28,6 +33,12 @@ export const GPS_STATUS = {
 };
 
 const STATUS_CONFIG = {
+  idle: {
+    icon:    'location-outline',
+    text:    'Location will be checked when needed',
+    bg:      colors.bgSubtle,
+    textColor: colors.textMuted,
+  },
   loading: {
     icon:    'locate-outline',
     text:    'Checking location...',
@@ -83,6 +94,11 @@ const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName, message, checke
       ? `Inside ${branchName}`
       : config.text
   );
+  const checkedLabel = checkedAt
+    ? dayjs(checkedAt).isValid()
+      ? `checked ${dayjs(checkedAt).fromNow()}`
+      : `checked ${checkedAt}`
+    : null;
 
   return (
     <Animated.View style={[styles.bar, { backgroundColor: config.bg }, animatedStyle]}>
@@ -91,7 +107,7 @@ const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName, message, checke
       </View>
       <View style={styles.copy}>
         <Text style={[styles.text, { color: config.textColor }]}>{displayText}</Text>
-        {checkedAt ? <Text style={styles.checked}>Last checked {checkedAt}</Text> : null}
+        {checkedLabel ? <Text style={styles.checked}>{checkedLabel}</Text> : null}
       </View>
       {onRetry ? (
         <TouchableOpacity
