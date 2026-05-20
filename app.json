@@ -3,6 +3,12 @@
     "name": "AttendEase",
     "slug": "attendease",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5cb50616-0be4-4d3b-8204-5679a3fe0ac5"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,7 +25,10 @@
       "bundleIdentifier": "com.attendease.app",
       "infoPlist": {
         "NSCameraUsageDescription": "AttendEase uses your camera to verify your identity when marking attendance.",
-        "NSLocationWhenInUseUsageDescription": "AttendEase uses your location to verify you are at your office premises."
+        "NSLocationWhenInUseUsageDescription": "AttendEase uses your location to verify you are at your office premises.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
@@ -29,6 +38,7 @@
       },
       "package": "com.attendease.app",
       "googleServicesFile": "./google-services.json",
+      "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -38,6 +48,7 @@
       ]
     },
     "plugins": [
+      "./plugins/withCleartextTraffic",
       "expo-dev-client",
       "expo-font",
       "expo-secure-store",
