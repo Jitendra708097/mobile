@@ -89,7 +89,7 @@ const useAttendanceStore = create((set, get) => ({
         buttonState,
         openSession: data.openSession || null,
         cooldownEndsAt: data.cooldownEndsAt || null,
-        lastCheckout: data.lastCheckout || null,
+        lastCheckout: data.undoWindowEndsAt || null,
         lastCheckoutId: data.lastCheckoutId || null,
         lastCheckOutTime: data.lastCheckout || null,
         todayStatus: data.todayStatus || null,
@@ -209,10 +209,11 @@ const useAttendanceStore = create((set, get) => ({
         isFinalCheckout,
       };
       await useOfflineQueueStore.getState().addRecord(record);
+      const undoWindowEndsAt = new Date(Date.now() + SESSION.UNDO_WINDOW_MINUTES * 60000).toISOString();
       set({
         buttonState: isFinalCheckout ? BUTTON_STATES.CAP_REACHED : BUTTON_STATES.COOLDOWN,
         openSession: null,
-        lastCheckout: new Date(record.timestamp).toISOString(),
+        lastCheckout: undoWindowEndsAt,
         lastCheckOutTime: new Date(record.timestamp).toISOString(),
         totalWorkedMins: get().totalWorkedMins,
         isLoading: false,

@@ -8,13 +8,7 @@ import { ErrorMessage, LoadingOverlay } from '../../components/common/CommonComp
 import useAttendanceStore from '../../store/attendanceStore.js';
 import useNetworkStatus from '../../hooks/useNetworkStatus.js';
 import useCountdown from '../../hooks/useCountdown.js';
-import {
-  compressSelfie,
-  deleteTempImage,
-  detectChallengeCompletion,
-  quickFaceCheck,
-  validateFaceQuality,
-} from '../../services/faceService.js';
+import { compressSelfie, deleteTempImage, detectChallengeCompletion, quickFaceCheck, validateFaceQuality } from '../../services/faceService.js';
 import { getDeviceId } from '../../services/deviceService.js';
 import { getLocationErrorMessage, getVerifiedLocation } from '../../services/locationService.js';
 import { requestAttendanceChallenge } from '../../services/attendanceService.js';
