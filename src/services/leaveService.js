@@ -6,6 +6,16 @@ export const getLeaveBalance = async () => {
   return response.data.data;
 };
 
+export const getLeaveTypes = async () => {
+  const response = await api.get(API_ROUTES.LEAVE_TYPES);
+  return response.data.data;
+};
+
+export const previewLeave = async (body) => {
+  const response = await api.post(API_ROUTES.LEAVE_PREVIEW, body);
+  return response.data.data;
+};
+
 export const getLeaveHistory = async (params = {}) => {
   const response = await api.get(API_ROUTES.LEAVE_HISTORY, { params });
   return response.data.data;

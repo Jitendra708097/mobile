@@ -64,9 +64,12 @@ const AttendanceCalendar = ({ month, attendanceMap = {}, onDayPress }) => {
 
           const dateStr  = firstDay.date(day).format('YYYY-MM-DD');
           const record   = attendanceMap[dateStr];
-          const status   = record?.status || (dayjs(dateStr).isAfter(today) ? null : 'weekend');
+          const status   = typeof record === 'string'
+            ? record
+            : record?.status || (dayjs(dateStr).isAfter(today) ? null : 'weekend');
           const isToday  = dateStr === today;
-          const dotColor = record?.isLate
+          const isLate   = typeof record === 'object' && Boolean(record?.isLate);
+          const dotColor = isLate
             ? DOT_COLORS.late
             : (status ? DOT_COLORS[status] : null);
 

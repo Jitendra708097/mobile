@@ -75,13 +75,14 @@ const useAttendanceStore = create((set, get) => ({
 
     try {
       const data = await getTodayAttendanceStatus();
+      const maxSessionsPerDay = data.shiftInfo?.maxSessionsPerDay || SESSION.MAX_SESSIONS_PER_DAY;
 
       let buttonState = BUTTON_STATES.CHECK_IN;
       if (data.openSession) {
         buttonState = BUTTON_STATES.CHECKED_IN;
       } else if (data.cooldownEndsAt && new Date(data.cooldownEndsAt) > new Date()) {
         buttonState = BUTTON_STATES.COOLDOWN;
-      } else if (data.sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY) {
+      } else if (data.sessionsToday >= maxSessionsPerDay) {
         buttonState = BUTTON_STATES.CAP_REACHED;
       }
 

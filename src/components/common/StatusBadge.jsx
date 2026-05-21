@@ -28,8 +28,10 @@ const STATUS_CONFIG = {
 
   // Leave request
   pending:        { bg: colors.warningLight, text: colors.warning,  label: 'Pending'    },
+  manager_approved: { bg: colors.infoLight, text: colors.info, label: 'Manager Approved' },
   approved:       { bg: colors.successLight, text: colors.success,  label: 'Approved'   },
   rejected:       { bg: colors.dangerLight,  text: colors.danger,   label: 'Rejected'   },
+  cancellation_pending: { bg: colors.warningLight, text: colors.warning, label: 'Cancel Pending' },
   cancelled:      { bg: colors.bgSubtle,     text: colors.textMuted,label: 'Cancelled'  },
 
   // Regularisation

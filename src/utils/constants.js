@@ -55,24 +55,32 @@ export const ATTENDANCE_STATUS = {
 
 // ─── Leave Types ─────────────────────────────────────────────────────────────
 export const LEAVE_TYPES = {
+  ANNUAL:   'annual',
   CASUAL:   'casual',
   SICK:     'sick',
   EARNED:   'earned',
   OPTIONAL: 'optional',
+  UNPAID:   'unpaid',
+  COMP_OFF: 'comp_off',
 };
 
 export const LEAVE_TYPE_LABELS = {
+  annual:   'Annual Leave',
   casual:   'Casual Leave',
   sick:     'Sick Leave',
   earned:   'Earned Leave',
   optional: 'Optional Leave',
+  unpaid:   'Unpaid Leave',
+  comp_off: 'Comp Off',
 };
 
 // ─── Leave Request Status ────────────────────────────────────────────────────
 export const LEAVE_STATUS = {
   PENDING:   'pending',
+  MANAGER_APPROVED: 'manager_approved',
   APPROVED:  'approved',
   REJECTED:  'rejected',
+  CANCELLATION_PENDING: 'cancellation_pending',
   CANCELLED: 'cancelled',
 };
 
@@ -175,6 +183,8 @@ export const API_ROUTES = {
   ATTENDANCE_STATUS:  '/attendance/today',
   ATTENDANCE_HISTORY: '/attendance/history',
   LEAVE_BALANCE:      '/leave/balance',
+  LEAVE_TYPES:        '/leave/types',
+  LEAVE_PREVIEW:      '/leave/preview',
   LEAVE_APPLY:        '/leave/apply',
   LEAVE_HISTORY:      '/leave/history',
   LEAVE_CANCEL:       '/leave/:id/cancel',

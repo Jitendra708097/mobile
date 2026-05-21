@@ -6,8 +6,9 @@
  */
 
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
 
 import api           from '../../api/axiosInstance.js';
 import SessionRow    from '../../components/history/SessionRow.jsx';
@@ -71,7 +72,18 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
               {formatDuration(d?.totalWorkedMins)} worked
             </Text>
           </View>
-          <StatusBadge status={d?.isLate ? 'late' : d?.status} />
+          <View style={styles.headerActions}>
+            <StatusBadge status={d?.isLate ? 'late' : d?.status} />
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close attendance details"
+            >
+              <Ionicons name="close" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Anomaly banner */}
@@ -108,6 +120,22 @@ const styles = StyleSheet.create({
     justifyContent:  'space-between',
     alignItems:      'flex-start',
     marginBottom:    spacing.base,
+    gap:             spacing.base,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   date: {
     fontFamily: typography.fontBold,

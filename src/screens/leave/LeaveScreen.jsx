@@ -25,7 +25,7 @@ import {
   LEAVE_TYPE_LABELS,
 } from '../../utils/constants.js';
 import { formatDateRange, countWorkingDays } from '../../utils/formatters.js';
-import { applyLeave, cancelLeave, getLeaveBalance, getLeaveHistory } from '../../services/leaveService.js';
+import { applyLeave, cancelLeave, getLeaveBalance, getLeaveHistory, getLeaveTypes } from '../../services/leaveService.js';
 
 // ── Leave Balance Card ───────────────────────────────────────────────────────
 const BalanceCard = ({ type, balance }) => {
@@ -42,7 +42,7 @@ const BalanceCard = ({ type, balance }) => {
 
   return (
     <View style={[bStyles.card, { borderTopColor: color }]}>
-      <Text style={bStyles.typeLabel}>{LEAVE_TYPE_LABELS[type]}</Text>
+      <Text style={bStyles.typeLabel}>{balance?.label || LEAVE_TYPE_LABELS[type] || type}</Text>
       <Text style={[bStyles.remaining, { color }]}>{remaining}</Text>
       <Text style={bStyles.unit}>days left</Text>
       <View style={bStyles.track}>
@@ -102,6 +102,7 @@ const TABS = ['Balance', 'Apply', 'History'];
 const LeaveScreen = () => {
   const [activeTab,  setActiveTab]  = useState(0);
   const [balances,   setBalances]   = useState({});
+  const [leaveTypes, setLeaveTypes] = useState([]);
   const [history,    setHistory]    = useState([]);
   const [isLoading,  setLoading]    = useState(false);
   const [error,      setError]      = useState('');
@@ -117,11 +118,13 @@ const LeaveScreen = () => {
   const [toDate,    setToDate]    = useState('');
   const [reason,    setReason]    = useState('');
   const [isHalfDay, setIsHalfDay] = useState(false);
+  const [halfDayPeriod, setHalfDayPeriod] = useState('morning');
 
   useEffect(() => { 
     const init =  async() => {
       try {
             await fetchBalance(); 
+            await fetchTypes();
             await fetchHistory();
       } catch (error) {
         console.log("fetch Balanace Error: ",error);
@@ -152,7 +155,7 @@ const LeaveScreen = () => {
     if (!reason.trim())       { setError('Reason is required.'); return; }
     setError(''); setLoading(true);
     try {
-      await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay });
+      await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay, halfDayPeriod: isHalfDay ? halfDayPeriod : null });
       setSuccess('Leave request submitted successfully.');
       setReason(''); setFromDate(''); setToDate('');
       fetchBalance(); fetchHistory();
@@ -169,6 +172,13 @@ const LeaveScreen = () => {
     } catch { /* non-critical */ }
   };
 
+  const fetchTypes = async () => {
+    try {
+      const data = await getLeaveTypes();
+      setLeaveTypes(data.types || []);
+    } catch { setLeaveTypes([]); }
+  };
+
   const refreshAll = async () => {
     setRefreshing(true);
     try {
@@ -179,6 +189,10 @@ const LeaveScreen = () => {
   };
 
   const workingDays = fromDate && toDate ? countWorkingDays(fromDate, toDate) : 0;
+  const dynamicTypeOptions = leaveTypes.length > 0
+    ? leaveTypes.map((item) => ({ type: item.type || item.code, label: item.label || item.name, halfDayAllowed: item.halfDayAllowed !== false }))
+    : Object.entries(LEAVE_TYPE_LABELS).map(([type, label]) => ({ type, label, halfDayAllowed: true }));
+  const selectedType = dynamicTypeOptions.find((item) => item.type === leaveType);
   const selectedBalance = balances[leaveType];
   const pendingCount = history.filter((item) => item.status === 'pending').length;
   const filteredHistory = history.filter((item) => {
@@ -225,7 +239,7 @@ const LeaveScreen = () => {
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
         >
           <View style={styles.grid}>
-            {[LEAVE_TYPES.CASUAL, LEAVE_TYPES.SICK, LEAVE_TYPES.EARNED, LEAVE_TYPES.OPTIONAL].map((type) => (
+            {dynamicTypeOptions.map(({ type }) => (
               <View key={type} style={styles.cardWrap}>
                 <BalanceCard type={type} balance={balances[type]} />
               </View>
@@ -264,11 +278,14 @@ const LeaveScreen = () => {
             <View style={styles.formSection}>
               <Text style={styles.sectionLabel}>Leave Type</Text>
               <View style={styles.pillRow}>
-                {Object.entries(LEAVE_TYPE_LABELS).map(([k, v]) => (
+                {dynamicTypeOptions.map(({ type: k, label: v }) => (
                   <TouchableOpacity
                     key={k}
                     style={[styles.pill, leaveType === k && styles.pillActive]}
-                    onPress={() => setLeaveType(k)}
+                    onPress={() => {
+                      setLeaveType(k);
+                      if (balances[k]?.halfDayAllowed === false) setIsHalfDay(false);
+                    }}
                     activeOpacity={0.85}
                   >
                     <Text style={[styles.pillText, leaveType === k && styles.pillTextActive]}>{v}</Text>
@@ -322,7 +339,7 @@ const LeaveScreen = () => {
 
               <TouchableOpacity
                 style={[styles.halfDayRow, isHalfDay && styles.halfDayActive]}
-                onPress={() => setIsHalfDay((p) => !p)}
+                onPress={() => selectedType?.halfDayAllowed === false ? null : setIsHalfDay((p) => !p)}
                 activeOpacity={0.85}
               >
                 <View>
@@ -331,6 +348,22 @@ const LeaveScreen = () => {
                 </View>
                 <Text style={styles.halfDayCheck}>{isHalfDay ? 'Yes' : 'No'}</Text>
               </TouchableOpacity>
+
+              {isHalfDay && (
+                <View style={styles.filterRow}>
+                  {['morning', 'afternoon'].map((period) => (
+                    <TouchableOpacity
+                      key={period}
+                      style={[styles.filterChip, halfDayPeriod === period && styles.filterChipActive]}
+                      onPress={() => setHalfDayPeriod(period)}
+                    >
+                      <Text style={[styles.filterText, halfDayPeriod === period && styles.filterTextActive]}>
+                        {period === 'morning' ? 'Morning' : 'Afternoon'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               {workingDays > 0 && (
                 <View style={styles.previewBox}>
@@ -394,14 +427,14 @@ const LeaveScreen = () => {
               </View>
               <Text style={styles.filterLabel}>Type</Text>
               <View style={styles.filterRow}>
-                {['all', ...Object.keys(LEAVE_TYPE_LABELS)].map((type) => (
+                {['all', ...dynamicTypeOptions.map((item) => item.type)].map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[styles.filterChip, historyType === type && styles.filterChipActive]}
                     onPress={() => setHistoryType(type)}
                   >
                     <Text style={[styles.filterText, historyType === type && styles.filterTextActive]}>
-                      {type === 'all' ? 'All' : LEAVE_TYPE_LABELS[type]}
+                      {type === 'all' ? 'All' : (dynamicTypeOptions.find((item) => item.type === type)?.label || LEAVE_TYPE_LABELS[type] || type)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -414,7 +447,7 @@ const LeaveScreen = () => {
                 <StatusBadge status={item.status} size="sm" />
                 <Text style={styles.historyDays}>{item.daysCount} day{item.daysCount !== 1 ? 's' : ''}</Text>
               </View>
-              <Text style={styles.historyType}>{LEAVE_TYPE_LABELS[item.leaveType]}</Text>
+              <Text style={styles.historyType}>{dynamicTypeOptions.find((option) => option.type === item.leaveType)?.label || LEAVE_TYPE_LABELS[item.leaveType] || item.leaveType}</Text>
               <Text style={styles.historyDates}>{formatDateRange(item.fromDate, item.toDate)}</Text>
               <Text style={styles.historyReason} numberOfLines={2}>{item.reason}</Text>
               {item.status === 'pending' && (

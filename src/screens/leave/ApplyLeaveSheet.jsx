@@ -38,10 +38,19 @@ const TypePill = ({ label, selected, onPress }) => (
  * @param {function} props.onClose        - Called when sheet closes
  */
 const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
-  const [leaveType, setLeaveType] = useState(LEAVE_TYPES.CASUAL);
+  const dynamicTypes = Object.entries(balances).map(([type, value]) => ({
+    type,
+    label: value?.label || LEAVE_TYPE_LABELS[type] || type,
+    halfDayAllowed: value?.halfDayAllowed !== false,
+  }));
+  const leaveTypeOptions = dynamicTypes.length > 0
+    ? dynamicTypes
+    : Object.entries(LEAVE_TYPE_LABELS).map(([type, label]) => ({ type, label, halfDayAllowed: true }));
+  const [leaveType, setLeaveType] = useState(leaveTypeOptions[0]?.type || LEAVE_TYPES.CASUAL);
   const [fromDate,  setFromDate]  = useState('');
   const [toDate,    setToDate]    = useState('');
   const [isHalfDay, setHalfDay]  = useState(false);
+  const [halfDayPeriod, setHalfDayPeriod] = useState('morning');
   const [reason,    setReason]    = useState('');
   const [isLoading, setLoading]  = useState(false);
   const [error,     setError]    = useState('');
@@ -51,6 +60,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
     : 0;
 
   const selectedBalance = balances[leaveType];
+  const selectedType = leaveTypeOptions.find((item) => item.type === leaveType);
   const isBalanceOk     = !selectedBalance || workingDays <= selectedBalance.remaining;
 
   const reset = () => {
@@ -58,6 +68,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
     setToDate(''); 
     setReason('');
     setHalfDay(false);
+    setHalfDayPeriod('morning');
     setError('');
   };
 
@@ -102,6 +113,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
         fromDate,
         toDate,
         isHalfDay,
+        halfDayPeriod: isHalfDay ? halfDayPeriod : null,
         reason: reason.trim(),
       });
       reset();
@@ -133,12 +145,15 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
         {/* Leave type pills */}
         <Text style={styles.fieldLabel}>Leave Type</Text>
         <View style={styles.pillRow}>
-          {Object.entries(LEAVE_TYPE_LABELS).map(([k, v]) => (
+          {leaveTypeOptions.map(({ type: k, label: v }) => (
             <TypePill
               key={k}
               label={v}
               selected={leaveType === k}
-              onPress={() => setLeaveType(k)}
+              onPress={() => {
+                setLeaveType(k);
+                if (balances[k]?.halfDayAllowed === false) setHalfDay(false);
+              }}
             />
           ))}
         </View>
@@ -181,11 +196,27 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
           </View>
           <Switch
             value={isHalfDay}
-            onValueChange={setHalfDay}
+            onValueChange={(value) => setHalfDay(selectedType?.halfDayAllowed === false ? false : value)}
             trackColor={{ false: colors.border, true: colors.accentLight }}
             thumbColor={isHalfDay ? colors.accent : colors.bgSubtle}
           />
         </View>
+
+        {isHalfDay && (
+          <View style={styles.periodRow}>
+            {['morning', 'afternoon'].map((period) => (
+              <TouchableOpacity
+                key={period}
+                onPress={() => setHalfDayPeriod(period)}
+                style={[styles.periodBtn, halfDayPeriod === period && styles.periodBtnActive]}
+              >
+                <Text style={[styles.periodText, halfDayPeriod === period && styles.periodTextActive]}>
+                  {period === 'morning' ? 'Morning' : 'Afternoon'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Days preview */}
         {workingDays > 0 && (
@@ -312,6 +343,31 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontFamily: typography.fontMedium, fontSize: typography.base, color: colors.textPrimary },
   toggleSub:   { fontFamily: typography.fontRegular, fontSize: typography.xs, color: colors.textMuted, marginTop: 2 },
+  periodRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  periodBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgSubtle,
+    borderRadius: 10,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  periodBtnActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentLight,
+  },
+  periodText: {
+    fontFamily: typography.fontMedium,
+    color: colors.textSecondary,
+  },
+  periodTextActive: {
+    color: colors.accent,
+  },
 
   previewBox: {
     backgroundColor: colors.accentLight,

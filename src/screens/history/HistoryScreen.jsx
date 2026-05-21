@@ -11,9 +11,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl,
+  StyleSheet, ActivityIndicator, RefreshControl, BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 
@@ -36,6 +37,16 @@ const HistoryScreen = ({ navigation }) => {
   const [isRefreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDetail,  setShowDetail]  = useState(false);
+  const showDetailRef = useRef(false);
+
+  const closeDetail = useCallback(() => {
+    setShowDetail(false);
+    setSelectedDay(null);
+  }, []);
+
+  useEffect(() => {
+    showDetailRef.current = showDetail;
+  }, [showDetail]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +89,23 @@ const HistoryScreen = ({ navigation }) => {
     const record = records.find((r) => r.date === dateStr);
     if (record) { setSelectedDay(record); setShowDetail(true); }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (showDetailRef.current) {
+          closeDetail();
+          return true;
+        }
+        return false;
+      });
+
+      return () => {
+        backSub.remove();
+        closeDetail();
+      };
+    }, [closeDetail])
+  );
 
   const prevMonth = () => setMonth((m) => m.subtract(1, 'month'));
   const nextMonth = () => setMonth((m) => m.add(1, 'month'));
@@ -185,7 +213,7 @@ const HistoryScreen = ({ navigation }) => {
       <DayDetailSheet
         visible={showDetail}
         record={selectedDay}
-        onClose={() => setShowDetail(false)}
+        onClose={closeDetail}
       />
     </SafeAreaView>
   );

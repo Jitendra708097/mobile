@@ -10,7 +10,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, StyleSheet, TextInput,
+  KeyboardAvoidingView, Platform, StyleSheet, TextInput, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +63,7 @@ const LoginScreen = ({ navigation, route }) => {
     if (!validate())
        return;
 
+    Keyboard.dismiss();
     const result = await login(email, password);
     if (!result || !result.success) {
       // Error already stored; component will re-render
