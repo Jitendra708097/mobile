@@ -18,6 +18,7 @@ import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
+import { navigateFromNotificationAction } from '../../navigation/navigationService.js';
 
 
 const NotificationItem = ({ item, onPress }) => {
@@ -73,9 +74,8 @@ const NotificationsScreen = ({ navigation }) => {
 
   const handleItemPress = (item) => {
     markAsRead(item.id);
-    // Navigate to relevant screen based on type
     if (item.actionUrl) {
-      // Deep link handling would go here
+      navigateFromNotificationAction(item.actionUrl);
     }
   };
 

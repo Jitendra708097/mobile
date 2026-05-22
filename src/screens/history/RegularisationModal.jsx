@@ -58,9 +58,10 @@ const FormField = ({
  * @param {object}  props
  * @param {boolean} props.visible
  * @param {function}props.onClose
+ * @param {function}[props.onSubmitted]
  * @param {string}  [props.date] - Pre-filled date string YYYY-MM-DD
  */
-const RegularisationModal = ({ visible, onClose, date }) => {
+const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
   const [type,     setType]     = useState(REGULARISATION_TYPES.MISSED_CHECKIN);
   const [checkIn,  setCheckIn]  = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -132,7 +133,14 @@ const RegularisationModal = ({ visible, onClose, date }) => {
         evidenceUrl:       photo?.uri || undefined,
       });
       setSuccess(true);
-      setTimeout(() => handleClose(), 1800);
+      setTimeout(() => {
+        reset();
+        if (onSubmitted) {
+          onSubmitted();
+        } else {
+          onClose();
+        }
+      }, 1800);
     } catch (e) {
       setError(e.response?.data?.error?.message || 'Submission failed. Please try again.');
     } finally {

@@ -19,6 +19,7 @@ import NotificationsScreen from '../screens/notifications/NotificationsScreen.js
 import LivenessChallenge from '../screens/home/LivenessChallenge.jsx';
 import KioskModeScreen from '../screens/kiosk/KioskModeScreen.jsx';
 import RegularisationModal from '../screens/history/RegularisationModal.jsx';
+import RegularisationRequestsScreen from '../screens/history/RegularisationRequestsScreen.jsx';
 import SetPasswordScreen from '../screens/auth/SetPasswordScreen.jsx';
 import FaceEnrollScreen from '../screens/auth/FaceEnrollScreen.jsx';
 import FaceEnrollIntroScreen from '../screens/auth/FaceEnrollIntroScreen.jsx';
@@ -174,6 +175,7 @@ const RegularisationScreenWrapper = ({ route, navigation }) => (
   <RegularisationModal
     visible
     onClose={() => navigation.goBack()}
+    onSubmitted={() => navigation.replace('RegularisationRequests')}
     date={route?.params?.date}
   />
 );
@@ -236,6 +238,25 @@ const MainNavigator = () => {
             gestureEnabled: false,
             cardStyle: { backgroundColor: '#000' },
             presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="RegularisationRequests"
+          component={RegularisationRequestsScreen}
+          options={{
+            headerShown: true,
+            title: 'Regularisations',
+            headerStyle: {
+              backgroundColor: colors.bgSurface,
+              elevation: 3,
+            },
+            headerTitleStyle: {
+              fontFamily: typography.fontSemiBold,
+              fontSize: typography.md,
+              color: colors.textPrimary,
+            },
+            headerBackTitleVisible: false,
+            headerTintColor: colors.accent,
           }}
         />
         <Stack.Screen

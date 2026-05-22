@@ -148,6 +148,15 @@ const HistoryScreen = ({ navigation }) => {
           <Text style={styles.todayButtonText}>Back to Today</Text>
         </TouchableOpacity>
       )}
+      <TouchableOpacity
+        style={styles.requestsButton}
+        onPress={() => navigation.navigate('RegularisationRequests')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="clipboard-outline" size={17} color={colors.accent} />
+        <Text style={styles.requestsButtonText}>Track Regularisations</Text>
+        <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
+      </TouchableOpacity>
 
       <FlatList
         ListHeaderComponent={
@@ -250,6 +259,25 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSemiBold,
     fontSize: typography.sm,
     color: colors.accent,
+  },
+  requestsButton: {
+    minHeight: 44,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.base,
+    borderRadius: 8,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  requestsButtonText: {
+    flex: 1,
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.sm,
+    color: colors.textPrimary,
   },
 
   strip: {

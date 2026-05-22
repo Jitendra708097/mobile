@@ -14,7 +14,8 @@ const ACTION_ROUTE_MAP = {
   '/profile':         { name: 'Tabs', params: { screen: 'Profile' } },
   '/notifications':   { name: 'Notifications' },
   '/device-exception': { name: 'DeviceException' },
-  '/regularisation':  { name: 'Tabs', params: { screen: 'History' } },
+  '/regularisation':  { name: 'RegularisationRequests' },
+  '/regularisations': { name: 'RegularisationRequests' },
 };
 
 function routeFromActionUrl(actionUrl) {
@@ -41,7 +42,7 @@ function routeFromActionUrl(actionUrl) {
       case 'leave':
         return { name: 'Tabs', params: { screen: 'Leave', params: { leaveId: id } } };
       case 'regularise':
-        return { name: 'Regularisation', params: { regularisationId: id } };
+        return { name: 'RegularisationRequests', params: { regularisationId: id } };
       case 'attendance':
         return { name: 'Tabs', params: { screen: 'History' } };
       case 'profile':

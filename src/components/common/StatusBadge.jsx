@@ -24,6 +24,7 @@ const STATUS_CONFIG = {
   incomplete:     { bg: colors.dangerLight,  text: colors.danger,   label: 'Incomplete' },
   overtime:       { bg: colors.accentLight,  text: colors.accent,   label: 'Overtime'   },
   not_marked:     { bg: colors.bgSubtle,     text: colors.textMuted,label: 'Not Marked' },
+  regularisation_pending: { bg: colors.warningLight, text: colors.warning, label: 'Correction Pending' },
   late:           { bg: colors.warningLight, text: colors.warning,  label: 'Late'       },
 
   // Leave request
