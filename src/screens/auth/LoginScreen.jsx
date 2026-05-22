@@ -80,7 +80,7 @@ const LoginScreen = ({ navigation, route }) => {
       return;
     }
     if (!employee.faceEnrolled && navigation?.replace) {
-      navigation.replace('FaceEnroll');
+      navigation.replace('FaceEnrollIntro');
       return;
     }
   };

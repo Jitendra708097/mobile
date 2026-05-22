@@ -10,9 +10,14 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen.jsx';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen.jsx';
 import SetPasswordScreen from '../screens/auth/SetPasswordScreen.jsx';
 import FaceEnrollScreen from '../screens/auth/FaceEnrollScreen.jsx';
+import FaceEnrollIntroScreen from '../screens/auth/FaceEnrollIntroScreen.jsx';
 import { colors } from '../theme/colors.js';
 
 const Stack = createStackNavigator();
+
+const FaceEnrollIntroWrapper = ({ navigation }) => (
+  <FaceEnrollIntroScreen onStart={() => navigation.replace('FaceEnroll')} />
+);
 
 const AuthNavigator = () => (
   <Stack.Navigator
@@ -27,6 +32,7 @@ const AuthNavigator = () => (
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="SetPassword" component={SetPasswordScreen} />
+      <Stack.Screen name="FaceEnrollIntro" component={FaceEnrollIntroWrapper} />
       <Stack.Screen
         name="FaceEnroll"
         component={FaceEnrollScreen}

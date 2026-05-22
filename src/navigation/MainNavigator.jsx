@@ -3,6 +3,7 @@
  * @description Bottom tab navigator for authenticated employees.
  */
 
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -20,6 +21,7 @@ import KioskModeScreen from '../screens/kiosk/KioskModeScreen.jsx';
 import RegularisationModal from '../screens/history/RegularisationModal.jsx';
 import SetPasswordScreen from '../screens/auth/SetPasswordScreen.jsx';
 import FaceEnrollScreen from '../screens/auth/FaceEnrollScreen.jsx';
+import FaceEnrollIntroScreen from '../screens/auth/FaceEnrollIntroScreen.jsx';
 
 import useAuthStore from '../store/authStore.js';
 import useNotificationStore from '../store/notificationStore.js';
@@ -178,9 +180,14 @@ const RegularisationScreenWrapper = ({ route, navigation }) => (
 
 const MainNavigator = () => {
   const user = useAuthStore((s) => s.user);
+  const [showFaceEnrollCamera, setShowFaceEnrollCamera] = useState(false);
 
   if (user?.isFirstLogin) return <SetPasswordScreen />;
-  if (!user?.faceEnrolled) return <FaceEnrollScreen />;
+  if (!user?.faceEnrolled) {
+    return showFaceEnrollCamera
+      ? <FaceEnrollScreen onBack={() => setShowFaceEnrollCamera(false)} />
+      : <FaceEnrollIntroScreen onStart={() => setShowFaceEnrollCamera(true)} />;
+  }
 
   return (
     <Stack.Navigator

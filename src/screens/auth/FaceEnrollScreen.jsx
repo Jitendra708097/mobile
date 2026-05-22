@@ -15,7 +15,7 @@ import { spacing } from '../../theme/spacing.js';
 
 const DETECT_INTERVAL_MS = 1200;
 
-const FaceEnrollScreen = ({ navigation }) => {
+const FaceEnrollScreen = ({ onBack }) => {
   const user = useAuthStore((state) => state.user);
   const markFaceEnrolled = useAuthStore((state) => state.markFaceEnrolled);
 
@@ -24,12 +24,11 @@ const FaceEnrollScreen = ({ navigation }) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const [captureCountdown, setCaptureCountdown] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const cameraRef = useRef(null);
   const detectRef = useRef(null);
-  const countdownRef = useRef(null);
-  const captureTimeoutRef = useRef(null);
+  const successTimeoutRef = useRef(null);
   const isDetecting = useRef(false);
 
   useEffect(() => {
@@ -39,18 +38,17 @@ const FaceEnrollScreen = ({ navigation }) => {
 
     return () => {
       clearInterval(detectRef.current);
-      clearInterval(countdownRef.current);
-      clearTimeout(captureTimeoutRef.current);
+      clearTimeout(successTimeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (permission?.granted && !isUploading) {
+    if (permission?.granted && !isUploading && !isSuccess) {
       startDetectionLoop();
     }
 
     return () => clearInterval(detectRef.current);
-  }, [permission?.granted, isUploading]);
+  }, [permission?.granted, isUploading, isSuccess]);
 
   const startDetectionLoop = () => {
     clearInterval(detectRef.current);
@@ -73,26 +71,6 @@ const FaceEnrollScreen = ({ navigation }) => {
 
         const result = await quickFaceCheck(snapUri);
         setQuality(result);
-
-        if (result.valid && !countdownRef.current && !captureTimeoutRef.current) {
-          clearInterval(detectRef.current);
-          setCaptureCountdown(3);
-          setQuality({ valid: true, reason: '' });
-          countdownRef.current = setInterval(() => {
-            setCaptureCountdown((value) => {
-              if (!value || value <= 1) {
-                clearInterval(countdownRef.current);
-                countdownRef.current = null;
-                return null;
-              }
-              return value - 1;
-            });
-          }, 1000);
-          captureTimeoutRef.current = setTimeout(() => {
-            captureTimeoutRef.current = null;
-            captureAndUpload();
-          }, 3000);
-        }
       } catch (error) {
         setQuality({ valid: false, reason: 'Camera is getting ready. Please hold still.' });
       } finally {
@@ -105,11 +83,17 @@ const FaceEnrollScreen = ({ navigation }) => {
   };
 
   const captureAndUpload = async () => {
-    clearInterval(countdownRef.current);
-    clearTimeout(captureTimeoutRef.current);
-    countdownRef.current = null;
-    captureTimeoutRef.current = null;
-    setCaptureCountdown(null);
+    if (isDetecting.current) {
+      setQuality({ valid: false, reason: 'Camera is checking your face. Try again in a moment.' });
+      return;
+    }
+
+    if (!cameraRef.current || !quality?.valid) {
+      setQuality({ valid: false, reason: 'Center your face clearly before capturing.' });
+      return;
+    }
+
+    clearInterval(detectRef.current);
     setIsCapturing(true);
     setStatusMsg('Capturing your enrollment selfie...');
 
@@ -118,6 +102,7 @@ const FaceEnrollScreen = ({ navigation }) => {
       const compressed = await compressSelfie(photo.uri);
       await deleteTempImage(photo.uri);
 
+      setIsCapturing(false);
       setIsUploading(true);
       setStatusMsg('Submitting face enrollment...');
 
@@ -127,11 +112,15 @@ const FaceEnrollScreen = ({ navigation }) => {
       });
 
       await pollEnrollmentStatus();
-      setStatusMsg('Enrollment complete');
+      setIsUploading(false);
+      setStatusMsg('');
+      setIsSuccess(true);
+      successTimeoutRef.current = setTimeout(() => {
+        markFaceEnrolled();
+      }, 1400);
     } catch (error) {
       setIsUploading(false);
       setIsCapturing(false);
-      setCaptureCountdown(null);
       setStatusMsg('');
       setQuality({ 
         valid: false, 
@@ -168,7 +157,6 @@ const FaceEnrollScreen = ({ navigation }) => {
           const status = response.data.data.status;
 
           if (status === 'enrolled') {
-            await markFaceEnrolled();
             resolve();
             return;
           }
@@ -203,6 +191,22 @@ const FaceEnrollScreen = ({ navigation }) => {
     return <View style={styles.safe} />;
   }
 
+  if (isSuccess) {
+    return (
+      <SafeAreaView style={styles.successSafe}>
+        <View style={styles.successBlock}>
+          <View style={styles.successIcon}>
+            <Ionicons name="checkmark" size={42} color={colors.textInverse} />
+          </View>
+          <Text style={styles.successTitle}>Enrollment Successful</Text>
+          <Text style={styles.successSub}>
+            Welcome to AttendEase. Taking you to your attendance dashboard.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -218,27 +222,43 @@ const FaceEnrollScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Text style={styles.title}>Face Enrollment</Text>
-      <Text style={styles.subtitle}>Center your face inside the guide and hold still.</Text>
+      <View style={styles.header}>
+        {onBack ? (
+          <AppButton
+            label="Back"
+            onPress={onBack}
+            variant="ghost"
+            icon={<Ionicons name="chevron-back" size={20} color={colors.accent} />}
+            fullWidth={false}
+            style={styles.backBtn}
+            textStyle={styles.backBtnText}
+          />
+        ) : null}
+        <Text style={styles.title}>Face Enrollment</Text>
+        <Text style={styles.subtitle}>Center your face inside the guide, then capture your photo.</Text>
+      </View>
 
       <View style={styles.cameraContainer}>
         <CameraView ref={cameraRef} style={styles.camera} facing="front" />
         <View style={styles.ovalGuide} />
-        {captureCountdown ? (
-          <View style={styles.countdownBadge}>
-            <Text style={styles.countdownNumber}>{captureCountdown}</Text>
-          </View>
-        ) : null}
       </View>
 
       <View style={styles.feedbackBox}>
-        {captureCountdown ? (
-          <Text style={styles.feedbackNeutral}>Face detected. Capturing in {captureCountdown}...</Text>
-        ) : quality?.valid === false ? (
+        {quality?.valid === false ? (
           <Text style={styles.feedbackBad}>{quality.reason}</Text>
+        ) : quality?.valid ? (
+          <Text style={styles.feedbackGood}>Ready to capture.</Text>
         ) : (
           <Text style={styles.feedbackNeutral}>Good lighting and one face only.</Text>
         )}
+        <AppButton
+          label="Capture Photo"
+          onPress={captureAndUpload}
+          disabled={!quality?.valid || isCapturing || isUploading}
+          icon={<Ionicons name="camera" size={20} color={colors.textInverse} />}
+          fullWidth
+          style={styles.captureBtn}
+        />
       </View>
 
       {(isCapturing || isUploading) && (
@@ -250,12 +270,27 @@ const FaceEnrollScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.textPrimary },
+  header: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.base,
+  },
+  backBtn: {
+    minHeight: 40,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+  },
+  backBtnText: {
+    fontSize: typography.sm,
+  },
   title: {
     fontFamily: typography.fontBold,
     fontSize: typography.xl,
     color: colors.textInverse,
     textAlign: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
   },
   subtitle: {
     fontFamily: typography.fontRegular,
@@ -279,25 +314,6 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     borderStyle: 'dashed',
   },
-  countdownBadge: {
-    position: 'absolute',
-    alignSelf: 'center',
-    top: '38%',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(13,115,119,0.88)',
-    borderWidth: 2,
-    borderColor: colors.textInverse,
-  },
-  countdownNumber: {
-    fontFamily: typography.fontBold,
-    fontSize: 44,
-    color: colors.textInverse,
-    lineHeight: 52,
-  },
   feedbackBox: {
     padding: spacing.base,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -310,6 +326,49 @@ const styles = StyleSheet.create({
   feedbackBad: {
     fontFamily: typography.fontMedium,
     color: colors.dangerLight,
+    textAlign: 'center',
+  },
+  feedbackGood: {
+    fontFamily: typography.fontSemiBold,
+    color: colors.success,
+    textAlign: 'center',
+  },
+  captureBtn: {
+    marginTop: spacing.base,
+    borderRadius: 8,
+  },
+  successSafe: {
+    flex: 1,
+    backgroundColor: colors.bgPrimary,
+  },
+  successBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing['2xl'],
+  },
+  successIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    marginBottom: spacing.xl,
+  },
+  successTitle: {
+    fontFamily: typography.fontBold,
+    fontSize: typography['2xl'],
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  successSub: {
+    maxWidth: 320,
+    fontFamily: typography.fontRegular,
+    fontSize: typography.base,
+    lineHeight: typography.base * typography.normal,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   permissionBlock: {

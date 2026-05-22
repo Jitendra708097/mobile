@@ -69,7 +69,7 @@ const SetPasswordScreen = ({ navigation }) => {
       return;
     }
     if (navigation?.replace) {
-      navigation.replace('FaceEnroll');
+      navigation.replace('FaceEnrollIntro');
     }
   };
 

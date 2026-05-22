@@ -1,0 +1,12 @@
+
+> @attendease/mobile@1.0.0 start
+> expo start --localhost
+
+env: load .env
+env: export EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_ENVIRONMENT
+Starting project at C:\Users\jiten\OneDrive\Desktop\Attendease\mobile
+Starting Metro Bundler
+
+[31m[7m[1m ERROR [22m[27m[39m An unknown error occurred while installing React Native DevTools. Details:
+
+spawn EPERM
