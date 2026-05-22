@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -106,6 +106,7 @@ const ChangePasswordSheet = ({ sheetRef, onClose }) => {
   };
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     setError('');
 
     if (!current.trim()) { setError('Current password is required.'); return; }

@@ -10,3 +10,12 @@ Starting Metro Bundler
 [31m[7m[1m ERROR [22m[27m[39m An unknown error occurred while installing React Native DevTools. Details:
 
 spawn EPERM
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo\AppEntry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.5% (133/270)
+Web node_modules\expo\AppEntry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.5% (584/853)
+Web node_modules\expo\AppEntry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 69.1% ( 931/1120)
+Web node_modules\expo\AppEntry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 90.5% (1294/1360)
+Web Bundled 15635ms node_modules\expo\AppEntry.js (1498 modules)
+ LOG  [web] Logs will appear in the browser console

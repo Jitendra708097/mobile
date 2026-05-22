@@ -11,7 +11,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, TextInput, RefreshControl, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton  from '../../components/common/AppButton.jsx';
@@ -151,6 +151,7 @@ const LeaveScreen = () => {
   };
 
   const handleApply = async () => {
+    Keyboard.dismiss();
     if (!fromDate || !toDate) { setError('Please select dates.'); return; }
     if (!reason.trim())       { setError('Reason is required.'); return; }
     setError(''); setLoading(true);

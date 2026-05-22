@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, TextInput, Keyboard } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import AppButton from '../../components/common/AppButton.jsx';
@@ -78,6 +78,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
   };
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     setError('');
     if (!fromDate)
     { 

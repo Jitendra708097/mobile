@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Modal, TextInput, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import AppButton from '../../components/common/AppButton.jsx';
@@ -90,6 +90,7 @@ const RegularisationModal = ({ visible, onClose, date }) => {
   };
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (!reason.trim()) { setError('Reason is required.'); return; }
     const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
     const needsCheckIn = type === REGULARISATION_TYPES.MISSED_CHECKIN || type === REGULARISATION_TYPES.WRONG_TIME;
