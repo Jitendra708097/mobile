@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +20,8 @@ import { spacing } from '../../theme/spacing.js';
 import { typography } from '../../theme/typography.js';
 import { validateEmail, validateNewPassword, validatePasswordMatch } from '../../utils/validators.js';
 
+const RESEND_COOLDOWN_SECONDS = 60;
+
 const ForgotPasswordScreen = ({ navigation }) => {
   const forgotPassword = useAuthStore((s) => s.forgotPassword);
   const resetPassword = useAuthStore((s) => s.resetPassword);
@@ -37,6 +39,19 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) {
+      return undefined;
+    }
+
+    const timerId = setInterval(() => {
+      setResendSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [resendSeconds]);
 
   const handleSendOtp = async ({ resend = false } = {}) => {
     clearErr();
@@ -61,6 +76,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
       }
 
       setOtpSent(true);
+      setResendSeconds(RESEND_COOLDOWN_SECONDS);
       setSuccessMessage(
         resend
           ? 'A fresh OTP has been sent. Enter it below to reset your password.'
@@ -229,10 +245,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
                 <TouchableOpacity
                   onPress={() => handleSendOtp({ resend: true })}
-                  disabled={isLoading || isResending}
+                  disabled={isLoading || isResending || resendSeconds > 0}
                   style={styles.linkRow}
                 >
-                  <Text style={styles.linkText}>{isResending ? 'Sending OTP...' : 'Resend OTP'}</Text>
+                  <Text style={[styles.linkText, resendSeconds > 0 && styles.disabledLinkText]}>
+                    {resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : isResending ? 'Sending OTP...' : 'Resend OTP'}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -345,6 +363,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMedium,
     fontSize: typography.sm,
     color: colors.accent,
+  },
+  disabledLinkText: {
+    color: colors.textSecondary,
   },
   secondaryButton: {
     marginTop: spacing.sm,

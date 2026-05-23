@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, View, Text, StyleSheet } from 'react-native';
+import { Image, Linking, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { v4 as uuidv4 } from 'uuid';
@@ -33,6 +33,7 @@ export default function KioskModeScreen({ navigation }) {
   const [lastResult, setLastResult] = useState(null);
   const [stage, setStage] = useState('ready');
   const [challengeEndsAt, setChallengeEndsAt] = useState(null);
+  const [isFaceReady, setIsFaceReady] = useState(false);
 
   const cameraRef = useRef(null);
   const detectRef = useRef(null);
@@ -40,6 +41,7 @@ export default function KioskModeScreen({ navigation }) {
   const hasCompleted = useRef(false);
   const hasInitialized = useRef(false);
   const submitRef = useRef(false);
+  const autoResetRef = useRef(null);
   const faceIssueRef = useRef({ reason: '', count: 0 });
   const challengeProgressRef = useRef({});
   const verifiedPremiseLocationRef = useRef(null);
@@ -68,6 +70,7 @@ export default function KioskModeScreen({ navigation }) {
 
     return () => {
       clearInterval(detectRef.current);
+      clearTimeout(autoResetRef.current);
       cameraRef.current = null;
     };
   }, [permission?.granted]);
@@ -100,12 +103,17 @@ export default function KioskModeScreen({ navigation }) {
 
   const initializeKiosk = async () => {
     clearInterval(detectRef.current);
+    clearTimeout(autoResetRef.current);
     setIsBusy(true);
     setError('');
+    if (lastResult?.imageUri) {
+      await deleteTempImage(lastResult.imageUri);
+    }
     setLastResult(null);
     setStage('ready');
     setChallenge(null);
     setChallengeEndsAt(null);
+    setIsFaceReady(false);
     challengeProgressRef.current = {};
     faceIssueRef.current = { reason: '', count: 0 };
     hasCompleted.current = false;
@@ -129,7 +137,7 @@ export default function KioskModeScreen({ navigation }) {
       }
       verifiedPremiseLocationRef.current = startupLocation;
 
-      setHint('Preparing liveness challenge...');
+      setHint('Preparing secure selfie token...');
       setStage('challenge');
       const nextChallenge = await requestAttendanceChallenge();
       setChallengeEndsAt(new Date(Date.now() + SESSION.CHALLENGE_TIMEOUT_MS).toISOString());
@@ -174,13 +182,13 @@ export default function KioskModeScreen({ navigation }) {
         });
         snapUri = snap.uri;
 
-        const useFastDetection = !['blink', 'smile'].includes(challenge.challengeType);
         const result = await quickFaceCheck(snapUri, {
-          fast: useFastDetection,
-          allowClosedEyes: challenge.challengeType === 'blink',
+          fast: true,
+          allowClosedEyes: false,
         });
         if (!result.valid) {
           setStage('face');
+          setIsFaceReady(false);
           const reason = result.reason || 'Keep face inside the guide';
           const previous = faceIssueRef.current;
           const count = previous.reason === reason ? previous.count + 1 : 1;
@@ -194,17 +202,19 @@ export default function KioskModeScreen({ navigation }) {
 
         faceIssueRef.current = { reason: '', count: 0 };
         setStage('challenge');
-        const completion = detectChallengeCompletion(
-          result.face,
-          challenge.challengeType,
-          challengeProgressRef.current
-        );
+        setIsFaceReady(false);
+        const completion = challenge.challengeType === 'selfie'
+          ? { completed: true, progress: challengeProgressRef.current }
+          : detectChallengeCompletion(
+              result.face,
+              challenge.challengeType,
+              challengeProgressRef.current
+            );
         challengeProgressRef.current = completion.progress || challengeProgressRef.current;
 
         if (completion.completed) {
-          hasCompleted.current = true;
-          clearInterval(detectRef.current);
-          await captureAndSubmit();
+          setIsFaceReady(true);
+          setHint('Face ready. Tap Capture Selfie.');
         } else {
           setHint(LIVENESS_CHALLENGE_LABELS[challenge.challengeType] || 'Complete the challenge');
         }
@@ -224,12 +234,25 @@ export default function KioskModeScreen({ navigation }) {
       return;
     }
 
+    if (!isFaceReady) {
+      setHint('Center the face until the capture button is ready.');
+      return;
+    }
+
+    if (isDetecting.current) {
+      setHint('Camera is checking the face. Try again in a moment.');
+      return;
+    }
+
     submitRef.current = true;
+    hasCompleted.current = true;
+    clearInterval(detectRef.current);
     setIsBusy(true);
     setError('');
     setHint('Capturing face...');
     setStage('capture');
     let compressedUri = null;
+    let keepCompressedImage = false;
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -288,19 +311,26 @@ export default function KioskModeScreen({ navigation }) {
         empCode: data.matchedEmployee?.empCode || '',
         actionLabel,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        imageUri: compressed.uri,
       });
+      keepCompressedImage = true;
       await syncWithServer();
       await resetForNextScan(`${data.matchedEmployee?.name || 'Employee'} ${actionLabel}`);
+      autoResetRef.current = setTimeout(() => {
+        navigation.goBack();
+      }, 1800);
     } catch (err) {
       const message = err?.response?.data?.error?.message || (err.code ? getLocationErrorMessage(err.code) : err.message);
       setError(message || 'Kiosk scan failed.');
       setStage('ready');
       setChallenge(null);
       setChallengeEndsAt(null);
+      setIsFaceReady(false);
       setHint('Scan failed. Tap Retry Now after reading the message.');
+      hasCompleted.current = false;
       submitRef.current = false;
     } finally {
-      if (compressedUri) {
+      if (compressedUri && !keepCompressedImage) {
         await deleteTempImage(compressedUri);
       }
       setIsBusy(false);
@@ -350,7 +380,7 @@ export default function KioskModeScreen({ navigation }) {
           {[
             ['ready', 'Ready'],
             ['face', 'Face'],
-            ['challenge', 'Challenge'],
+            ['challenge', 'Ready'],
             ['location', 'Location'],
             ['submit', 'Submit'],
           ].map(([key, label]) => (
@@ -369,6 +399,10 @@ export default function KioskModeScreen({ navigation }) {
       <View style={styles.footer}>
         {lastResult ? (
           <View style={styles.resultBox}>
+            {lastResult.imageUri ? (
+              <Image source={{ uri: lastResult.imageUri }} style={styles.resultImage} />
+            ) : null}
+            <Text style={styles.resultStatus}>Successful</Text>
             <Text style={styles.resultTitle}>{lastResult.name}</Text>
             <Text style={styles.resultText}>
               {lastResult.empCode ? `${lastResult.empCode} - ` : ''}{lastResult.actionLabel}
@@ -378,7 +412,7 @@ export default function KioskModeScreen({ navigation }) {
         ) : null}
         <Text style={styles.challengeText}>
           {lastResult
-            ? 'Tap Next Scan to continue'
+            ? 'Exiting kiosk mode'
             : challenge
               ? LIVENESS_CHALLENGE_LABELS[challenge.challengeType]
               : 'Waiting for next scan'}
@@ -392,10 +426,11 @@ export default function KioskModeScreen({ navigation }) {
             style={{ marginBottom: spacing.sm }}
           />
         ) : null}
-        {lastResult && !challenge && !isBusy && !error ? (
+        {!lastResult && !error ? (
           <AppButton
-            label="Next Scan"
-            onPress={initializeKiosk}
+            label="Capture Selfie"
+            onPress={captureAndSubmit}
+            disabled={!isFaceReady || isBusy}
             style={{ marginBottom: spacing.sm }}
           />
         ) : null}
@@ -519,6 +554,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: spacing.base,
     marginBottom: spacing.base,
+    alignItems: 'center',
+  },
+  resultImage: {
+    width: 112,
+    height: 112,
+    borderRadius: 8,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  resultStatus: {
+    fontFamily: typography.fontBold,
+    fontSize: typography.sm,
+    color: colors.success,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
   resultTitle: {
     fontFamily: typography.fontBold,

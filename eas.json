@@ -15,7 +15,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "http://13.201.126.60/api/v1",
+        "EXPO_PUBLIC_API_BASE_URL": "http://13.126.79.127/api/v1",
         "EXPO_PUBLIC_ENVIRONMENT": "staging"
       },
       "android": {

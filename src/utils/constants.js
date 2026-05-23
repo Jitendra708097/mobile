@@ -133,6 +133,7 @@ export const LIVENESS_CHALLENGES = {
 };
 
 export const LIVENESS_CHALLENGE_LABELS = {
+  selfie:     'Center your face for verification',
   blink:      'Blink once, then look at camera',
   turn_left:  'Turn LEFT slowly',
   turn_right: 'Turn RIGHT slowly',

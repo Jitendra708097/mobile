@@ -17,7 +17,7 @@ import { spacing } from '../../theme/spacing.js';
 const DETECT_INTERVAL_MS = 400;
 const STAGE_STEPS = [
   ['face', 'Face'],
-  ['challenge', 'Move'],
+  ['challenge', 'Ready'],
   ['capture', 'Selfie'],
   ['location', 'GPS'],
   ['submit', 'Done'],
@@ -31,13 +31,13 @@ const CHALLENGE_TIPS = {
 
 const WORKFLOW_COPY = {
   checkIn: {
-    title: 'Liveness Check',
+    title: 'Face Verification',
     locationHint: 'Verifying your location...',
     submitHint: 'Submitting attendance...',
     errorMessage: 'Could not complete attendance check-in.',
   },
   checkOut: {
-    title: 'Checkout Verification',
+    title: 'Checkout Face Verification',
     locationHint: 'Verifying your checkout location...',
     submitHint: 'Submitting check-out...',
     errorMessage: 'Could not complete attendance check-out.',
@@ -64,6 +64,7 @@ const LivenessChallenge = ({ navigation, route }) => {
   const [stage, setStage] = useState('face');
   const [challengeEndsAt, setChallengeEndsAt] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isFaceReady, setIsFaceReady] = useState(false);
 
   const cameraRef = useRef(null);
   const detectRef = useRef(null);
@@ -160,6 +161,7 @@ const LivenessChallenge = ({ navigation, route }) => {
     faceIssueRef.current = { reason: '', count: 0 };
     hasCompleted.current = false;
     submitRef.current = false;
+    setIsFaceReady(false);
     setStage('face');
 
     if (!permission?.granted) {
@@ -171,7 +173,7 @@ const LivenessChallenge = ({ navigation, route }) => {
     if (!isOnline) {
       const localChallenge = {
         challengeToken: `offline-${Date.now()}`,
-        challengeType: 'blink',
+        challengeType: 'selfie',
         offline: true,
       };
       setChallengeEndsAt(new Date(Date.now() + SESSION.CHALLENGE_TIMEOUT_MS).toISOString());
@@ -242,13 +244,13 @@ const LivenessChallenge = ({ navigation, route }) => {
         });
         snapUri = snap.uri;
 
-        const useFastDetection = challenge.challengeType !== 'blink';
         const result = await quickFaceCheck(snapUri, {
-          fast: useFastDetection,
-          allowClosedEyes: challenge.challengeType === 'blink',
+          fast: true,
+          allowClosedEyes: false,
         });
         if (!result.valid) {
           setStage('face');
+          setIsFaceReady(false);
           const reason = result.reason || 'Keep your face inside the guide';
           const previous = faceIssueRef.current;
           const count = previous.reason === reason ? previous.count + 1 : 1;
@@ -262,18 +264,20 @@ const LivenessChallenge = ({ navigation, route }) => {
 
         faceIssueRef.current = { reason: '', count: 0 };
         setStage('challenge');
+        setIsFaceReady(false);
 
-        const completion = detectChallengeCompletion(
-          result.face,
-          challenge.challengeType,
-          challengeProgressRef.current
-        );
+        const completion = challenge.challengeType === 'selfie'
+          ? { completed: true, progress: challengeProgressRef.current }
+          : detectChallengeCompletion(
+              result.face,
+              challenge.challengeType,
+              challengeProgressRef.current
+            );
         challengeProgressRef.current = completion.progress || challengeProgressRef.current;
 
         if (completion.completed) {
-          hasCompleted.current = true;
-          clearInterval(detectRef.current);
-          await captureAndSubmit();
+          setIsFaceReady(true);
+          setHint('Face ready. Tap Capture Selfie.');
         } else {
           setHint(LIVENESS_CHALLENGE_LABELS[challenge.challengeType] || 'Complete the challenge');
         }
@@ -293,7 +297,19 @@ const LivenessChallenge = ({ navigation, route }) => {
       return;
     }
 
+    if (!isFaceReady) {
+      setHint('Center your face until the capture button is ready.');
+      return;
+    }
+
+    if (isDetecting.current) {
+      setHint('Camera is checking your face. Try again in a moment.');
+      return;
+    }
+
     submitRef.current = true;
+    hasCompleted.current = true;
+    clearInterval(detectRef.current);
     setIsBusy(true);
     setHint('Capturing selfie...');
     setStage('capture');
@@ -364,6 +380,7 @@ const LivenessChallenge = ({ navigation, route }) => {
       challengeProgressRef.current = {};
       hasCompleted.current = false;
       submitRef.current = false;
+      setIsFaceReady(false);
       setActiveChallenge(null);
       setChallengeEndsAt(null);
       setStage('face');
@@ -439,6 +456,14 @@ const LivenessChallenge = ({ navigation, route }) => {
             label="Retry Scan"
             variant="outline"
             onPress={initializeChallenge}
+            style={{ marginBottom: spacing.sm }}
+          />
+        ) : null}
+        {!localError && !storeError && !successMessage ? (
+          <AppButton
+            label="Capture Selfie"
+            onPress={captureAndSubmit}
+            disabled={!isFaceReady || isBusy}
             style={{ marginBottom: spacing.sm }}
           />
         ) : null}

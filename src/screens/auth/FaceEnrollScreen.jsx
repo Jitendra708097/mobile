@@ -13,8 +13,6 @@ import { colors } from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing } from '../../theme/spacing.js';
 
-const DETECT_INTERVAL_MS = 1200;
-
 const FaceEnrollScreen = ({ onBack }) => {
   const user = useAuthStore((state) => state.user);
   const markFaceEnrolled = useAuthStore((state) => state.markFaceEnrolled);
@@ -27,7 +25,6 @@ const FaceEnrollScreen = ({ onBack }) => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const cameraRef = useRef(null);
-  const detectRef = useRef(null);
   const successTimeoutRef = useRef(null);
   const isDetecting = useRef(false);
 
@@ -37,50 +34,9 @@ const FaceEnrollScreen = ({ onBack }) => {
     }
 
     return () => {
-      clearInterval(detectRef.current);
       clearTimeout(successTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (permission?.granted && !isUploading && !isSuccess) {
-      startDetectionLoop();
-    }
-
-    return () => clearInterval(detectRef.current);
-  }, [permission?.granted, isUploading, isSuccess]);
-
-  const startDetectionLoop = () => {
-    clearInterval(detectRef.current);
-
-    detectRef.current = setInterval(async () => {
-      if (isDetecting.current || !cameraRef.current || isCapturing) {
-        return;
-      }
-
-      isDetecting.current = true;
-      let snapUri = null;
-
-      try {
-        const snap = await cameraRef.current.takePictureAsync({
-          quality: 0.3,
-          skipProcessing: true,
-          base64: false,
-        });
-        snapUri = snap.uri;
-
-        const result = await quickFaceCheck(snapUri);
-        setQuality(result);
-      } catch (error) {
-        setQuality({ valid: false, reason: 'Camera is getting ready. Please hold still.' });
-      } finally {
-        if (snapUri) {
-          await deleteTempImage(snapUri);
-        }
-        isDetecting.current = false;
-      }
-    }, DETECT_INTERVAL_MS);
-  };
 
   const captureAndUpload = async () => {
     if (isDetecting.current) {
@@ -88,17 +44,22 @@ const FaceEnrollScreen = ({ onBack }) => {
       return;
     }
 
-    if (!cameraRef.current || !quality?.valid) {
-      setQuality({ valid: false, reason: 'Center your face clearly before capturing.' });
+    if (!cameraRef.current) {
+      setQuality({ valid: false, reason: 'Camera is getting ready. Please try again.' });
       return;
     }
 
-    clearInterval(detectRef.current);
     setIsCapturing(true);
-    setStatusMsg('Capturing your enrollment selfie...');
+    setStatusMsg('Checking your enrollment selfie...');
 
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.85, base64: false });
+      const result = await quickFaceCheck(photo.uri, { fast: false });
+      if (!result.valid) {
+        await deleteTempImage(photo.uri);
+        throw new Error(result.reason || 'Center your face clearly before capturing.');
+      }
+
       const compressed = await compressSelfie(photo.uri);
       await deleteTempImage(photo.uri);
 
@@ -126,7 +87,6 @@ const FaceEnrollScreen = ({ onBack }) => {
         valid: false, 
         reason: error.message || 'Enrollment failed. Please try again.' 
       });
-      startDetectionLoop();
     }
   };
 
@@ -235,7 +195,7 @@ const FaceEnrollScreen = ({ onBack }) => {
           />
         ) : null}
         <Text style={styles.title}>Face Enrollment</Text>
-        <Text style={styles.subtitle}>Center your face inside the guide, then capture your photo.</Text>
+        <Text style={styles.subtitle}>Center your face inside the guide, then tap Capture Photo.</Text>
       </View>
 
       <View style={styles.cameraContainer}>
@@ -247,14 +207,14 @@ const FaceEnrollScreen = ({ onBack }) => {
         {quality?.valid === false ? (
           <Text style={styles.feedbackBad}>{quality.reason}</Text>
         ) : quality?.valid ? (
-          <Text style={styles.feedbackGood}>Ready to capture.</Text>
+          <Text style={styles.feedbackGood}>Face checked. Submitting enrollment.</Text>
         ) : (
           <Text style={styles.feedbackNeutral}>Good lighting and one face only.</Text>
         )}
         <AppButton
           label="Capture Photo"
           onPress={captureAndUpload}
-          disabled={!quality?.valid || isCapturing || isUploading}
+          disabled={isCapturing || isUploading}
           icon={<Ionicons name="camera" size={20} color={colors.textInverse} />}
           fullWidth
           style={styles.captureBtn}

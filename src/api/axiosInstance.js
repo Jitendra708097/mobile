@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from '../utils/constants.js';
 
 // ✅ FIX: Use environment variable instead of hardcoded IP
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://13.201.126.60/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://13.126.79.127/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
