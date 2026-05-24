@@ -6,7 +6,7 @@
  *              
  *              Updated 2026-04-14: Aligned with unified design tokens.
  *              - Primary: #0d7377 (mobile teal)
- *              - Semantic: #00ff88 (success), #ffaa00 (warning), #ff3366 (danger), #00d4ff (info)
+ *              - Semantic colors are chosen for readable text contrast on light fills.
  */
 
 export const colors = {
@@ -22,13 +22,13 @@ export const colors = {
 
   // ─── Semantic Status Colors (Unified across platforms) ────────────────────
   // Changed from platform-specific to unified tokens for brand consistency
-  success:      '#00ff88',   // green - completed, present (unified)
+  success:      '#007a45',   // accessible green - completed, present
   successLight: '#e8f5e9',   // light green background
-  warning:      '#ffaa00',   // amber - caution, half-day (unified)
+  warning:      '#7a4b00',   // accessible amber - caution, half-day
   warningLight: '#fff8e1',   // light amber background
-  danger:       '#ff3366',   // red - error, absent (unified)
+  danger:       '#b4234a',   // accessible red - error, absent
   dangerLight:  '#ffebee',   // light red background
-  info:         '#00d4ff',   // cyan - information, on-leave (unified)
+  info:         '#006b85',   // accessible cyan - information, on-leave
   infoLight:    '#e3f2fd',   // light cyan background
 
   // ─── Text (Light Theme) ─────────────────────────────────────────────────────

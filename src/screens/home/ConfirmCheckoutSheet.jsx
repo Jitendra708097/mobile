@@ -30,6 +30,7 @@ const ConfirmCheckoutSheet = ({ visible, onClose, onConfirmCheckout, sessionStar
   const [isFinal, setIsFinal] = useState(false);
   const sheetRef = useRef(null);
   const belowMinimum = sessionMinutes > 0 && sessionMinutes < minSessionMinutes;
+  const hasCooldown = cooldownMinutes != null && Number(cooldownMinutes) > 0;
 
   useEffect(() => {
     if (visible)
@@ -87,7 +88,7 @@ const ConfirmCheckoutSheet = ({ visible, onClose, onConfirmCheckout, sessionStar
           </View>
         )}
 
-        {!isFinal ? (
+        {!isFinal && hasCooldown ? (
           <View style={styles.policyBox}>
             <Text style={styles.policyText}>Next check-in unlocks after about {cooldownMinutes} min.</Text>
           </View>

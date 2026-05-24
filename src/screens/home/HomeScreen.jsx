@@ -229,15 +229,15 @@ const HomeScreen = ({ navigation }) => {
   }, [hydrateOfflineQueue, isOnline, syncOfflineQueue]);
 
   // ── CAP_REACHED grey button ──────────────────────────────────────────────
-  const minSessionMinutes = shiftInfo?.minSessionMinutes || SESSION.MIN_SESSION_MINUTES;
-  const cooldownMinutes = shiftInfo?.cooldownMinutes || SESSION.COOLDOWN_MINUTES;
-  const maxSessionsPerDay = shiftInfo?.maxSessionsPerDay || SESSION.MAX_SESSIONS_PER_DAY;
+  const minSessionMinutes = shiftInfo ? shiftInfo.minSessionMinutes : SESSION.MIN_SESSION_MINUTES;
+  const cooldownMinutes = shiftInfo ? shiftInfo.cooldownMinutes : SESSION.COOLDOWN_MINUTES;
+  const maxSessionsPerDay = shiftInfo?.maxSessionsPerDay ?? null;
 
   const CapReachedButton = () => (
     <View style={styles.capButton}>
       <Ionicons name="checkmark-done-circle-outline" size={22} color={colors.capGrey} style={styles.capIcon} />
       <Text style={styles.capLabel}>Done for today</Text>
-      <Text style={styles.capSub}>{maxSessionsPerDay} sessions completed</Text>
+      <Text style={styles.capSub}>{maxSessionsPerDay ? `${maxSessionsPerDay} sessions completed` : 'Final checkout completed'}</Text>
     </View>
   );
 

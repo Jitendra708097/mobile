@@ -75,14 +75,14 @@ const useAttendanceStore = create((set, get) => ({
 
     try {
       const data = await getTodayAttendanceStatus();
-      const maxSessionsPerDay = data.shiftInfo?.maxSessionsPerDay || SESSION.MAX_SESSIONS_PER_DAY;
+      const maxSessionsPerDay = data.shiftInfo?.maxSessionsPerDay;
 
       let buttonState = BUTTON_STATES.CHECK_IN;
       if (data.openSession) {
         buttonState = BUTTON_STATES.CHECKED_IN;
       } else if (data.cooldownEndsAt && new Date(data.cooldownEndsAt) > new Date()) {
         buttonState = BUTTON_STATES.COOLDOWN;
-      } else if (data.sessionsToday >= maxSessionsPerDay) {
+      } else if (maxSessionsPerDay != null && data.sessionsToday >= maxSessionsPerDay) {
         buttonState = BUTTON_STATES.CAP_REACHED;
       }
 
@@ -253,10 +253,14 @@ const useAttendanceStore = create((set, get) => ({
         exceptionId: selectedDeviceException?.id,
         isFinalCheckout,
       });
-      const newButtonState =
-        isFinalCheckout || get().sessionsToday >= SESSION.MAX_SESSIONS_PER_DAY - 1
-          ? BUTTON_STATES.CAP_REACHED
-          : BUTTON_STATES.COOLDOWN;
+      const maxSessionsPerDay = get().shiftInfo?.maxSessionsPerDay;
+      const nextSessionsToday = get().sessionsToday + 1;
+      const hasReachedCap = maxSessionsPerDay != null && nextSessionsToday >= maxSessionsPerDay;
+      const newButtonState = isFinalCheckout || hasReachedCap
+        ? BUTTON_STATES.CAP_REACHED
+        : data.cooldownEndsAt
+          ? BUTTON_STATES.COOLDOWN
+          : BUTTON_STATES.CHECK_IN;
 
       const undoWindowEndsAt = new Date(Date.now() + SESSION.UNDO_WINDOW_MINUTES * 60000).toISOString();
 

@@ -13,7 +13,6 @@ import { spacing }     from '../../theme/spacing.js';
 import AppCard         from '../common/AppCard.jsx';
 import StatusBadge     from '../common/StatusBadge.jsx';
 import { formatDuration, formatTime } from '../../utils/formatters.js';
-import { SESSION }     from '../../utils/constants.js';
 
 /**
  * @param {object} props
@@ -35,7 +34,7 @@ const TodaySummaryCard = ({
   isActive       = false,
   timezone       = 'Asia/Kolkata',
   isLate          = false,
-  maxSessionsPerDay = SESSION.MAX_SESSIONS_PER_DAY,
+  maxSessionsPerDay = null,
   hasPendingSync = false,
 }) => {
   return (
@@ -74,7 +73,7 @@ const TodaySummaryCard = ({
 
         <View style={[styles.stat, styles.statDivider]}>
           <Text style={styles.statValue}>
-            {sessionsToday}/{maxSessionsPerDay}
+            {maxSessionsPerDay ? `${sessionsToday}/${maxSessionsPerDay}` : sessionsToday}
           </Text>
           <Text style={styles.statLabel}>Sessions</Text>
         </View>
