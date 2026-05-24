@@ -98,6 +98,7 @@ const ProfileScreen = ({ navigation }) => {
   );
 
   const joinedDate = user?.joinedAt ? formatDate(user.joinedAt) : 'Not available';
+  const designation = user?.designationName || user?.designation || 'Employee';
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
@@ -112,7 +113,7 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.empCode}>{user?.employeeCode}</Text>
           <View style={styles.badgeRow}>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>{user?.role || 'Employee'}</Text>
+              <Text style={styles.roleBadgeText}>{designation}</Text>
             </View>
           </View>
         </View>
