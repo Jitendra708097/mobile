@@ -271,7 +271,6 @@ const LivenessChallenge = ({ navigation, route }) => {
       const message = error.code ? getLocationErrorMessage(error.code) : error.message;
       setLocalError(message || workflowCopy.errorMessage);
       hasCompleted.current = false;
-      submitRef.current = false;
       setActiveChallenge(null);
       setChallengeEndsAt(null);
       setStage('face');

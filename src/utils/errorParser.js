@@ -66,7 +66,7 @@ const ERROR_MESSAGES = {
   FACE_004: 'Image quality too low. Please try in better lighting.',
   FACE_005: 'Face enrollment failed. Please try again.',
   FACE_006: 'Flat surface detected. Please use your real face.',
-  FACE_007: 'Liveness check failed. Please complete the challenge fully.',
+  FACE_007: 'Face match is ambiguous. Please retry with one clear face in frame.',
   FACE_008: 'No registered employee face matched in this branch.',
   FACE_MATCH_FAILED: 'Face verification failed. Please try again in good lighting.',
   FACE_MULTIPLE: 'Multiple faces detected. Only one person should be in frame.',

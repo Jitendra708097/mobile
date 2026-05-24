@@ -230,7 +230,6 @@ export default function KioskModeScreen({ navigation }) {
       setChallengeEndsAt(null);
       setHint('Scan failed. Tap Retry Now after reading the message.');
       hasCompleted.current = false;
-      submitRef.current = false;
     } finally {
       if (compressedUri && !keepCompressedImage) {
         await deleteTempImage(compressedUri);
