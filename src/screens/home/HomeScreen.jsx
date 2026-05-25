@@ -58,7 +58,6 @@ const HomeScreen = ({ navigation }) => {
   const isSyncing        = useAttendanceStore((s) => s.isSyncing);
   const fetchBranchGeofence = useAttendanceStore((s) => s.fetchBranchGeofence);
   const assessPremiseLocation = useAttendanceStore((s) => s.assessPremiseLocation);
-  const branchPolygon    = useAttendanceStore((s) => s.branchPolygon);
   const storedBranchName = useAttendanceStore((s) => s.branchName);
   const lastPremiseCheckedAt = useAttendanceStore((s) => s.lastPremiseCheckedAt);
 
@@ -130,7 +129,8 @@ const HomeScreen = ({ navigation }) => {
 
     try {
       const branchData = await fetchBranchGeofence();
-      const resolvedBranchName = branchData?.name || storedBranchName || '';
+      const attendanceState = useAttendanceStore.getState();
+      const resolvedBranchName = branchData?.name || attendanceState.branchName || '';
       setBranchName(resolvedBranchName);
 
       const loc = await getQuickLocation();
@@ -143,7 +143,7 @@ const HomeScreen = ({ navigation }) => {
         return { status: GPS_STATUS.OUTSIDE, message: 'Could not verify your current location. Enable location and retry.' };
       }
 
-      const polygon = Array.isArray(branchData?.polygon) ? branchData.polygon : branchPolygon;
+      const polygon = Array.isArray(branchData?.polygon) ? branchData.polygon : attendanceState.branchPolygon;
       const accuracy = loc.coords.accuracy;
 
       if (Array.isArray(polygon) && polygon.length >= 3) {
@@ -205,7 +205,7 @@ const HomeScreen = ({ navigation }) => {
     } finally {
       setIsGpsRefreshing(false);
     }
-  }, [branchPolygon, fetchBranchGeofence, storedBranchName]);
+  }, [fetchBranchGeofence]);
 
   useFocusEffect(
     useCallback(() => {
