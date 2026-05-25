@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
     // iOS
-    boxShadow: '0px 8px 16px rgba(220, 38, 38, 0.28)',
+    boxShadow: '0px 8px 16px rgba(220, 38, 38, 0.22)',
     // Android
     elevation: 8,
   },

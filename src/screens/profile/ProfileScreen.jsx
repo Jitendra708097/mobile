@@ -7,10 +7,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  Switch, StyleSheet,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
@@ -248,7 +245,7 @@ const styles = StyleSheet.create({
   avatar: {
     borderWidth: 3,
     borderColor: colors.bgSurface,
-    boxShadow: '0px 4px 12px rgba(13, 115, 119, 0.18)',
+    boxShadow: '0px 4px 12px rgba(59, 130, 246, 0.16)',
     elevation: 3,
   },
   name: {

@@ -2,7 +2,7 @@
  * @module AppButton
  * @description Reusable animated button with loading state.
  *              Spring scale animation on press/release.
- *              Supports: primary (teal), danger (red), outline, ghost variants.
+ *              Supports: primary (blue), danger (red), outline, ghost variants.
  *              Minimum touch target: 56px. Full-width or auto-width.
  *              Loading state: spinner replaces label, button disabled.
  *              Called by: all screens for primary actions.
@@ -119,12 +119,12 @@ const styles = StyleSheet.create({
   // ── Variants ───────────────────────────────────────────────────────────────
   primary: {
     backgroundColor: colors.accent,
-    boxShadow: '0px 6px 12px rgba(13, 115, 119, 0.28)',
+    boxShadow: '0px 6px 12px rgba(59, 130, 246, 0.24)',
     elevation: 6,
   },
   danger: {
     backgroundColor: colors.danger,
-    boxShadow: '0px 6px 12px rgba(220, 38, 38, 0.25)',
+    boxShadow: '0px 6px 12px rgba(220, 38, 38, 0.22)',
     elevation: 6,
   },
   outline: {

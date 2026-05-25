@@ -134,7 +134,7 @@ export const setupPushNotifications = async (deviceId) => {
       name:             'AttendEase',
       importance:       Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor:       '#0d7377',
+      lightColor:       '#3b82f6',
     });
   }
 

@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems:      'center',
     justifyContent:  'center',
-    boxShadow:       '0px 6px 12px rgba(13, 115, 119, 0.3)',
+    boxShadow:       '0px 6px 12px rgba(59, 130, 246, 0.24)',
     elevation:       8,
   },
 });

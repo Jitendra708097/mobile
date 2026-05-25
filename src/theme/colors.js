@@ -1,66 +1,50 @@
 /**
  * @module colors
- * @description Single source of truth for all colors in AttendEase mobile app.
- *              Import this everywhere — never hardcode hex values.
- *              Palette: clean minimal, deep teal accent, calm and trustworthy.
- *              
- *              Updated 2026-04-14: Aligned with unified design tokens.
- *              - Primary: #0d7377 (mobile teal)
- *              - Semantic colors are chosen for readable text contrast on light fills.
+ * @description Single source of truth for AttendEase mobile colors.
+ *              Palette: Cloud White, modern blue SaaS, calm and trustworthy.
  */
 
 export const colors = {
-  // ─── Backgrounds (Light Theme) ──────────────────────────────────────────────
-  bgPrimary:    '#f8f9fa',   // app background
-  bgSurface:    '#ffffff',   // card / panel background
-  bgSubtle:     '#f1f3f5',   // subtle section bg
+  // Backgrounds
+  bgPrimary: '#fafbfc',
+  bgSurface: '#ffffff',
+  bgSubtle: '#e8ecf1',
 
-  // ─── Brand Identity ─────────────────────────────────────────────────────────
-  accent:       '#0d7377',   // deep teal — primary action (mobile signature)
-  accentLight:  '#e8f4f4',   // teal tint for backgrounds
-  accentDark:   '#0a5d60',   // pressed / active state
+  // Brand
+  accent: '#3b82f6',
+  accentLight: '#eff6ff',
+  accentDark: '#2563eb',
 
-  // ─── Semantic Status Colors (Unified across platforms) ────────────────────
-  // Changed from platform-specific to unified tokens for brand consistency
-  success:      '#007a45',   // accessible green - completed, present
-  successLight: '#e8f5e9',   // light green background
-  warning:      '#7a4b00',   // accessible amber - caution, half-day
-  warningLight: '#fff8e1',   // light amber background
-  danger:       '#b4234a',   // accessible red - error, absent
-  dangerLight:  '#ffebee',   // light red background
-  info:         '#006b85',   // accessible cyan - information, on-leave
-  infoLight:    '#e3f2fd',   // light cyan background
+  // Semantic status colors
+  success: '#15803d',
+  successLight: '#dcfce7',
+  warning: '#b45309',
+  warningLight: '#fef3c7',
+  danger: '#dc2626',
+  dangerLight: '#fee2e2',
+  info: '#2563eb',
+  infoLight: '#dbeafe',
 
-  // ─── Text (Light Theme) ─────────────────────────────────────────────────────
-  textPrimary:   '#111827',  // headings, important text
-  textSecondary: '#6b7280',  // labels, descriptions
-  textMuted:     '#9ca3af',  // timestamps, hints
-  textInverse:   '#ffffff',  // text on dark backgrounds
+  // Text
+  textPrimary: '#0f172a',
+  textSecondary: '#475569',
+  textMuted: '#64748b',
+  textInverse: '#ffffff',
 
-  // ─── Borders ────────────────────────────────────────────────────────────────
-  border:      '#e5e7eb',
-  borderFocus: '#0d7377',
+  // Borders
+  border: '#dbe3ec',
+  borderFocus: '#3b82f6',
 
-  // ─── Check-in Button States (Using unified semantic colors) ────────────────
-  checkInGreen: '#00ff88',   // check-in button (unified success)
-  checkOutRed:  '#ff3366',   // check-out button (unified danger)
-  cooldownGrey: '#6b7280',   // cooldown button text
-  capGrey:      '#9ca3af',   // cap reached button text
+  // Attendance button states
+  checkInGreen: '#3b82f6',
+  checkOutRed: '#dc2626',
+  cooldownGrey: '#64748b',
+  capGrey: '#94a3b8',
 
-  // ─── Dark Theme Support (Future Enhancement) ────────────────────────────────
-  // To be implemented in Phase 3
-  // dark: {
-  //   bgPrimary:    '#080810',
-  //   bgSurface:    '#0f0f1a',
-  //   textPrimary:  '#e8e8f0',
-  //   textSecondary: '#6b6b8a',
-  //   border:       '#1e1e35',
-  // },
-
-  // ─── Misc ───────────────────────────────────────────────────────────────────
-  transparent:  'transparent',
-  overlay:      'rgba(0, 0, 0, 0.5)',
-  overlayLight: 'rgba(0, 0, 0, 0.2)',
-  white:        '#ffffff',
-  black:        '#000000',
+  // Misc
+  transparent: 'transparent',
+  overlay: 'rgba(15, 23, 42, 0.48)',
+  overlayLight: 'rgba(15, 23, 42, 0.18)',
+  white: '#ffffff',
+  black: '#000000',
 };

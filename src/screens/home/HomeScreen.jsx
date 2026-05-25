@@ -75,6 +75,8 @@ const HomeScreen = ({ navigation }) => {
   const [gpsMessage, setGpsMessage] = useState('');
   const [gpsCheckedAt, setGpsCheckedAt] = useState(null);
   const [isGpsRefreshing, setIsGpsRefreshing] = useState(false);
+  const [locationQuality, setLocationQuality] = useState('idle');
+  const [isGeofenceBuffered, setIsGeofenceBuffered] = useState(false);
   const [statusNotice, setStatusNotice] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -119,16 +121,12 @@ const HomeScreen = ({ navigation }) => {
     requestHomePermissions();
   }, [cameraPermission, requestCameraPermission]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshUnread();
-    }, [refreshUnread])
-  );
-
-  const refreshGps = async () => {
+  const refreshGps = useCallback(async () => {
     setIsGpsRefreshing(true);
     setGpsStatus(GPS_STATUS.LOADING);
     setGpsMessage('');
+    setLocationQuality('checking');
+    setIsGeofenceBuffered(false);
 
     try {
       const branchData = await fetchBranchGeofence();
@@ -141,6 +139,7 @@ const HomeScreen = ({ navigation }) => {
       {
         setGpsMessage('Could not verify your current location. Enable location and retry.');
         setGpsStatus(GPS_STATUS.OUTSIDE);
+        setLocationQuality('blocked');
         return { status: GPS_STATUS.OUTSIDE, message: 'Could not verify your current location. Enable location and retry.' };
       }
 
@@ -157,24 +156,33 @@ const HomeScreen = ({ navigation }) => {
         if (!insideWithBuffer) {
           setGpsMessage(resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises');
           setGpsStatus(GPS_STATUS.OUTSIDE);
+          setLocationQuality('blocked');
+          setIsGeofenceBuffered(false);
           return { status: GPS_STATUS.OUTSIDE, message: resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises' };
         }
         else if (!insidePremise)
         {
-          setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}. Location verified with low accuracy.` : 'Location verified with low accuracy.');
+          setGpsMessage(resolvedBranchName ? `GPS accuracy is low. You appear to be inside ${resolvedBranchName}.` : 'GPS accuracy is low. You appear to be inside office premises.');
           setGpsStatus(GPS_STATUS.WEAK);
-          return { status: GPS_STATUS.WEAK };
+          setLocationQuality('weak');
+          setIsGeofenceBuffered(true);
+          return { status: GPS_STATUS.WEAK, locationQuality: 'weak', isGeofenceBuffered: true };
         }
         else if (accuracy > 50)
         {
-          setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}. Location accuracy is low.` : 'Location accuracy is low.');
+          setGpsMessage(resolvedBranchName ? `GPS accuracy is low. You appear to be inside ${resolvedBranchName}.` : 'GPS accuracy is low. You appear to be inside office premises.');
           setGpsStatus(GPS_STATUS.WEAK);
-          return { status: GPS_STATUS.WEAK };
+          setLocationQuality('weak');
+          setIsGeofenceBuffered(true);
+          return { status: GPS_STATUS.WEAK, locationQuality: 'weak', isGeofenceBuffered: true };
         }
         else
         {
+          setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}` : '');
           setGpsStatus(GPS_STATUS.INSIDE);
-          return { status: GPS_STATUS.INSIDE };
+          setLocationQuality('verified');
+          setIsGeofenceBuffered(false);
+          return { status: GPS_STATUS.INSIDE, locationQuality: 'verified', isGeofenceBuffered: false };
         }
       }
 
@@ -182,18 +190,29 @@ const HomeScreen = ({ navigation }) => {
       {
         setGpsMessage('Location accuracy is too low to verify office boundary.');
         setGpsStatus(GPS_STATUS.OUTSIDE);
+        setLocationQuality('blocked');
+        setIsGeofenceBuffered(false);
         return { status: GPS_STATUS.OUTSIDE, message: 'Location accuracy is too low to verify office boundary.' };
       }
       else
       {
-        setGpsMessage('Location detected. Office boundary is not available yet.');
+        setGpsMessage('GPS accuracy is low. Office boundary is not available yet.');
         setGpsStatus(GPS_STATUS.WEAK);
-        return { status: GPS_STATUS.WEAK };
+        setLocationQuality('weak');
+        setIsGeofenceBuffered(true);
+        return { status: GPS_STATUS.WEAK, locationQuality: 'weak', isGeofenceBuffered: true };
       }
     } finally {
       setIsGpsRefreshing(false);
     }
-  };
+  }, [branchPolygon, fetchBranchGeofence, storedBranchName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnread();
+      refreshGps();
+    }, [refreshGps, refreshUnread])
+  );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -250,42 +269,41 @@ const HomeScreen = ({ navigation }) => {
     navigation.push('LivenessChallenge', {
       mode: 'checkOut',
       isFinalCheckout,
+      locationQuality: gpsStatus === GPS_STATUS.WEAK ? 'weak' : locationQuality,
+      isGeofenceBuffered: gpsStatus === GPS_STATUS.WEAK || isGeofenceBuffered,
     });
-  }, [navigation]);
+  }, [gpsStatus, isGeofenceBuffered, locationQuality, navigation]);
 
   const handleCheckInPress = useCallback(async () => {
-    const result = await refreshGps();
-    const nextStatus = result?.status || gpsStatus;
-    const nextMessage = result?.message || gpsMessage;
-
-    if (nextStatus === GPS_STATUS.OUTSIDE) {
-      Alert.alert(
-        'Move inside office',
-        nextMessage || 'You need to be inside office premises before marking attendance.',
-        [
-          { text: 'Request Correction', onPress: () => navigation.navigate('Regularisation') },
-          { text: 'Retry Location', onPress: refreshGps },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+    if (isGpsRefreshing || gpsStatus === GPS_STATUS.LOADING) {
       return;
     }
 
-    if (nextStatus === GPS_STATUS.WEAK) {
-      Alert.alert(
-        'Low accuracy location',
-        'GPS accuracy is weak. Continue only if you are inside the office premises.',
-        [
-          { text: 'Retry GPS', onPress: refreshGps },
-          { text: 'Continue', onPress: () => navigation.push('LivenessChallenge') },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+    if (gpsStatus === GPS_STATUS.OUTSIDE) {
+      await refreshGps();
       return;
     }
 
-    navigation.push('LivenessChallenge');
-  }, [gpsMessage, gpsStatus, navigation]);
+    let nextStatus = gpsStatus;
+    let nextLocationQuality = locationQuality;
+    let nextIsGeofenceBuffered = isGeofenceBuffered;
+
+    if (gpsStatus === GPS_STATUS.IDLE) {
+      const result = await refreshGps();
+      nextStatus = result?.status || gpsStatus;
+      nextLocationQuality = result?.locationQuality || locationQuality;
+      nextIsGeofenceBuffered = Boolean(result?.isGeofenceBuffered || isGeofenceBuffered);
+
+      if (nextStatus === GPS_STATUS.OUTSIDE) {
+        return;
+      }
+    }
+
+    navigation.push('LivenessChallenge', {
+      locationQuality: nextStatus === GPS_STATUS.WEAK ? 'weak' : nextLocationQuality,
+      isGeofenceBuffered: nextStatus === GPS_STATUS.WEAK || nextIsGeofenceBuffered,
+    });
+  }, [gpsStatus, isGeofenceBuffered, isGpsRefreshing, locationQuality, navigation, refreshGps]);
 
   const handleOpenKioskMode = useCallback(async () => {
     if (!isOnline) {
@@ -301,6 +319,42 @@ const HomeScreen = ({ navigation }) => {
 
     navigation.push('KioskMode');
   }, [assessPremiseLocation, isOnline, navigation]);
+
+  const checkInCta = (() => {
+    if (isGpsRefreshing || gpsStatus === GPS_STATUS.LOADING) {
+      return {
+        label: 'Checking Location...',
+        hint: 'Preparing attendance check-in.',
+        disabled: true,
+        loading: true,
+      };
+    }
+
+    if (gpsStatus === GPS_STATUS.OUTSIDE) {
+      return {
+        label: 'Retry Location',
+        hint: gpsMessage || 'Move inside office premises to mark attendance.',
+        disabled: false,
+        loading: false,
+      };
+    }
+
+    if (gpsStatus === GPS_STATUS.WEAK) {
+      return {
+        label: 'Continue Check-In',
+        hint: 'GPS accuracy is low. This check-in may be flagged for review.',
+        disabled: false,
+        loading: false,
+      };
+    }
+
+    return {
+      label: 'Check In',
+      hint: gpsStatus === GPS_STATUS.IDLE ? 'Location will be verified first.' : 'Location verified.',
+      disabled: false,
+      loading: false,
+    };
+  })();
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
@@ -358,10 +412,10 @@ const HomeScreen = ({ navigation }) => {
           {buttonState === BUTTON_STATES.CHECK_IN && (
             <CheckInButton
               onPress={handleCheckInPress}
-              loading={isSyncing || isGpsRefreshing}
-              disabled={gpsStatus === GPS_STATUS.LOADING}
-              label={gpsStatus === GPS_STATUS.OUTSIDE ? 'Check Location Again' : 'Mark Attendance'}
-              hint={gpsStatus === GPS_STATUS.IDLE ? 'Location will be verified when you tap.' : gpsStatus === GPS_STATUS.OUTSIDE ? 'Retry after you enter the office premises.' : null}
+              loading={isSyncing || checkInCta.loading}
+              disabled={checkInCta.disabled}
+              label={checkInCta.label}
+              hint={checkInCta.hint}
             />
           )}
 

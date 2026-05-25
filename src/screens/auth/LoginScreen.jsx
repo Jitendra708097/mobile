@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
     marginBottom:    spacing.base,
     // iOS
-    boxShadow: '0px 8px 16px rgba(13, 115, 119, 0.3)',
+    boxShadow: '0px 8px 16px rgba(59, 130, 246, 0.24)',
     // Android
     elevation: 8,
   },

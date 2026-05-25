@@ -2,7 +2,7 @@
  * @module AppInput
  * @description Styled TextInput wrapper with label, error state, and focus border.
  *              Supports secure text, multiline, and custom right icon/action.
- *              Focus: teal border. Error: red border + error message below.
+ *              Focus: blue border. Error: red border + error message below.
  *              Called by: LoginScreen, SetPasswordScreen, all form screens.
  */
 
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: colors.borderFocus,
-    boxShadow: '0px 0px 6px rgba(13, 115, 119, 0.12)',
+    boxShadow: '0px 0px 6px rgba(59, 130, 246, 0.14)',
     elevation: 2,
   },
   inputError: {

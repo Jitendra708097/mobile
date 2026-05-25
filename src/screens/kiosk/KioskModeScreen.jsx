@@ -68,9 +68,7 @@ export default function KioskModeScreen({ navigation }) {
   }, [permission?.granted]);
 
   useEffect(() => {
-    const hasActuallyTimedOut = challengeEndsAt
-      ? Date.now() >= new Date(challengeEndsAt).getTime()
-      : false;
+    const hasActuallyTimedOut = challengeEndsAt ? Date.now() >= new Date(challengeEndsAt).getTime() : false;
 
     if (!challenge || !challengeEndsAt || isBusy || hasCompleted.current || !challengeTimedOut || !hasActuallyTimedOut) {
       return;
@@ -368,7 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.xs,
-    backgroundColor: 'rgba(13, 115, 119, 0.28)',
+    backgroundColor: 'rgba(59, 130, 246, 0.24)',
     borderWidth: 1,
     borderColor: colors.accent,
   },

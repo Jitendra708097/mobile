@@ -51,7 +51,7 @@ const CheckInButton = ({ onPress, loading = false, disabled = false, label = 'Ma
             color={isDisabled ? colors.textSecondary : colors.textInverse}
             style={styles.icon}
           />
-          <Text style={[styles.label, isDisabled && styles.disabledText]}>{loading ? 'Checking...' : label}</Text>
+          <Text style={[styles.label, isDisabled && styles.disabledText]}>{label}</Text>
         </View>
       </TouchableOpacity>
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
     // iOS glow
-    boxShadow: '0px 8px 16px rgba(13, 115, 119, 0.32)',
+    boxShadow: '0px 8px 16px rgba(59, 130, 246, 0.26)',
     // Android
     elevation: 8,
   },

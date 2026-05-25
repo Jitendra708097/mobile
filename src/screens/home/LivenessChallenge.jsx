@@ -45,6 +45,8 @@ const LivenessChallenge = ({ navigation, route }) => {
 
   const mode = route?.params?.mode === 'checkOut' ? 'checkOut' : 'checkIn';
   const isFinalCheckout = Boolean(route?.params?.isFinalCheckout);
+  const initialLocationQuality = route?.params?.locationQuality || null;
+  const initialIsGeofenceBuffered = Boolean(route?.params?.isGeofenceBuffered);
   const workflowCopy = WORKFLOW_COPY[mode];
 
   const isOnline = useNetworkStatus();
@@ -239,18 +241,22 @@ const LivenessChallenge = ({ navigation, route }) => {
       const response = mode === 'checkOut'
         ? await checkOut({
             isFinalCheckout,
-            selfieBase64: compressed.base64,
-            faceEmbedding: null,
-            location,
-            challengeToken: submitChallenge.challengeToken,
-            isOnline,
-          })
+          selfieBase64: compressed.base64,
+          faceEmbedding: null,
+          location,
+          challengeToken: submitChallenge.challengeToken,
+          isOnline,
+          locationQuality: initialLocationQuality,
+          isGeofenceBuffered: initialIsGeofenceBuffered,
+        })
         : await checkIn({
             selfieBase64: compressed.base64,
             faceEmbedding: null,
             location,
             challengeToken: submitChallenge.challengeToken,
             isOnline,
+            locationQuality: initialLocationQuality,
+            isGeofenceBuffered: initialIsGeofenceBuffered,
           });
 
       if (!response.success) {

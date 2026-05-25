@@ -82,7 +82,7 @@ const useAttendanceStore = create((set, get) => ({
         buttonState = BUTTON_STATES.CHECKED_IN;
       } else if (data.cooldownEndsAt && new Date(data.cooldownEndsAt) > new Date()) {
         buttonState = BUTTON_STATES.COOLDOWN;
-      } else if (maxSessionsPerDay != null && data.sessionsToday >= maxSessionsPerDay) {
+      } else if (Number(maxSessionsPerDay) > 0 && data.sessionsToday >= maxSessionsPerDay) {
         buttonState = BUTTON_STATES.CAP_REACHED;
       }
 
@@ -106,7 +106,15 @@ const useAttendanceStore = create((set, get) => ({
     }
   },
 
-  checkIn: async ({ selfieBase64, faceEmbedding, location, challengeToken, isOnline }) => {
+  checkIn: async ({
+    selfieBase64,
+    faceEmbedding,
+    location,
+    challengeToken,
+    isOnline,
+    locationQuality,
+    isGeofenceBuffered,
+  }) => {
     set({ isLoading: true, error: null });
 
     if (!isOnline) {
@@ -122,6 +130,8 @@ const useAttendanceStore = create((set, get) => ({
         altitude: location.altitude,
         speed: location.speed,
         isMocked: Boolean(location.isMocked),
+        locationQuality: locationQuality || 'offline',
+        isGeofenceBuffered: Boolean(isGeofenceBuffered),
       };
       await useOfflineQueueStore.getState().addRecord(record);
       set({
@@ -141,6 +151,12 @@ const useAttendanceStore = create((set, get) => ({
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
+    const weakLocation = Boolean(
+      isGeofenceBuffered ||
+        premiseStatus.buffered ||
+        (premiseStatus.verified && Number(location.accuracy || 0) > 50)
+    );
+    const resolvedLocationQuality = locationQuality || (weakLocation ? 'weak' : 'verified');
 
     try {
       const deviceId = await getDeviceId();
@@ -161,6 +177,8 @@ const useAttendanceStore = create((set, get) => ({
         altitude: location.altitude,
         speed: location.speed,
         isMocked: Boolean(location.isMocked),
+        locationQuality: resolvedLocationQuality,
+        isGeofenceBuffered: weakLocation,
         useDeviceException: Boolean(selectedDeviceException),
         exceptionId: selectedDeviceException?.id,
       });
@@ -191,6 +209,8 @@ const useAttendanceStore = create((set, get) => ({
     location,
     challengeToken,
     isOnline,
+    locationQuality,
+    isGeofenceBuffered,
   }) => {
     set({ isLoading: true, error: null });
 
@@ -207,6 +227,8 @@ const useAttendanceStore = create((set, get) => ({
         altitude: location.altitude,
         speed: location.speed,
         isMocked: Boolean(location.isMocked),
+        locationQuality: locationQuality || 'offline',
+        isGeofenceBuffered: Boolean(isGeofenceBuffered),
         isFinalCheckout,
       };
       await useOfflineQueueStore.getState().addRecord(record);
@@ -230,6 +252,12 @@ const useAttendanceStore = create((set, get) => ({
         set({ isLoading: false, error: message });
         return { success: false, error: message };
       }
+      const weakLocation = Boolean(
+        isGeofenceBuffered ||
+          premiseStatus.buffered ||
+          (premiseStatus.verified && Number(location.accuracy || 0) > 50)
+      );
+      const resolvedLocationQuality = locationQuality || (weakLocation ? 'weak' : 'verified');
 
       const deviceId = await getDeviceId();
       const selectedDeviceException = await findUsableDeviceException(
@@ -249,13 +277,15 @@ const useAttendanceStore = create((set, get) => ({
         altitude: location.altitude,
         speed: location.speed,
         isMocked: Boolean(location.isMocked),
+        locationQuality: resolvedLocationQuality,
+        isGeofenceBuffered: weakLocation,
         useDeviceException: Boolean(selectedDeviceException),
         exceptionId: selectedDeviceException?.id,
         isFinalCheckout,
       });
       const maxSessionsPerDay = get().shiftInfo?.maxSessionsPerDay;
       const nextSessionsToday = get().sessionsToday + 1;
-      const hasReachedCap = maxSessionsPerDay != null && nextSessionsToday >= maxSessionsPerDay;
+      const hasReachedCap = Number(maxSessionsPerDay) > 0 && nextSessionsToday >= maxSessionsPerDay;
       const newButtonState = isFinalCheckout || hasReachedCap
         ? BUTTON_STATES.CAP_REACHED
         : data.cooldownEndsAt
