@@ -39,6 +39,12 @@ import { BUTTON_STATES, SESSION } from '../../utils/constants.js';
 import { getGreeting, formatShiftRange } from '../../utils/formatters.js';
 import dayjs from 'dayjs';
 
+const formatMeters = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed >= 1000 ? `${(parsed / 1000).toFixed(1)} km` : `${Math.round(parsed)} m`;
+};
+
 const HomeScreen = ({ navigation }) => {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const hasRequestedHomePermissions = useRef(false);
@@ -152,17 +158,26 @@ const HomeScreen = ({ navigation }) => {
         const distanceToBoundary = insidePremise ? 0 : distanceToPolygonMeters(point, polygon);
         const toleranceMeters = Math.min(Math.max(Number(accuracy || 0), 15), 50);
         const insideWithBuffer = insidePremise || distanceToBoundary <= toleranceMeters;
+        const accuracyLabel = formatMeters(accuracy);
+        const distanceLabel = formatMeters(distanceToBoundary);
 
         if (!insideWithBuffer) {
-          setGpsMessage(resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises');
+          const outsideMessage = resolvedBranchName
+            ? `Outside ${resolvedBranchName}${distanceLabel ? ` by about ${distanceLabel}` : ''}.${accuracyLabel ? ` GPS accuracy +/- ${accuracyLabel}.` : ''}`
+            : `Outside office premises${distanceLabel ? ` by about ${distanceLabel}` : ''}.${accuracyLabel ? ` GPS accuracy +/- ${accuracyLabel}.` : ''}`;
+          setGpsMessage(outsideMessage);
           setGpsStatus(GPS_STATUS.OUTSIDE);
           setLocationQuality('blocked');
           setIsGeofenceBuffered(false);
-          return { status: GPS_STATUS.OUTSIDE, message: resolvedBranchName ? `Outside ${resolvedBranchName}` : 'Outside office premises' };
+          return { status: GPS_STATUS.OUTSIDE, message: outsideMessage };
         }
         else if (!insidePremise)
         {
-          setGpsMessage(resolvedBranchName ? `GPS accuracy is low. You appear to be inside ${resolvedBranchName}.` : 'GPS accuracy is low. You appear to be inside office premises.');
+          setGpsMessage(
+            resolvedBranchName
+              ? `Near ${resolvedBranchName} boundary. GPS accuracy +/- ${accuracyLabel || 'unknown'}; check-in may be flagged.`
+              : `Near office boundary. GPS accuracy +/- ${accuracyLabel || 'unknown'}; check-in may be flagged.`
+          );
           setGpsStatus(GPS_STATUS.WEAK);
           setLocationQuality('weak');
           setIsGeofenceBuffered(true);
@@ -170,7 +185,11 @@ const HomeScreen = ({ navigation }) => {
         }
         else if (accuracy > 50)
         {
-          setGpsMessage(resolvedBranchName ? `GPS accuracy is low. You appear to be inside ${resolvedBranchName}.` : 'GPS accuracy is low. You appear to be inside office premises.');
+          setGpsMessage(
+            resolvedBranchName
+              ? `Inside ${resolvedBranchName}, but GPS accuracy is +/- ${accuracyLabel || 'unknown'}.`
+              : `Inside office premises, but GPS accuracy is +/- ${accuracyLabel || 'unknown'}.`
+          );
           setGpsStatus(GPS_STATUS.WEAK);
           setLocationQuality('weak');
           setIsGeofenceBuffered(true);
