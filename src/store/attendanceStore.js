@@ -118,6 +118,13 @@ const useAttendanceStore = create((set, get) => ({
     set({ isLoading: true, error: null });
 
     if (!isOnline) {
+      const premiseStatus = await get().assessPremiseLocation(location);
+      if (premiseStatus.verified && !premiseStatus.inside) {
+        const message = 'You are outside office premises. Offline check-in was not saved.';
+        set({ isLoading: false, error: message });
+        return { success: false, error: message };
+      }
+
       const record = {
         clientRecordId: uuidv4(),
         type: 'check_in',
@@ -215,6 +222,13 @@ const useAttendanceStore = create((set, get) => ({
     set({ isLoading: true, error: null });
 
     if (!isOnline) {
+      const premiseStatus = await get().assessPremiseLocation(location);
+      if (premiseStatus.verified && !premiseStatus.inside) {
+        const message = 'You are outside office premises. Offline check-out was not saved.';
+        set({ isLoading: false, error: message });
+        return { success: false, error: message };
+      }
+
       const record = {
         clientRecordId: uuidv4(),
         type: 'check_out',

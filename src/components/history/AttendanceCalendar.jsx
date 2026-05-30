@@ -1,6 +1,6 @@
 /**
  * @module AttendanceCalendar
- * @description Monthly calendar grid with colored status dots per day.
+ * @description Monthly calendar grid with full-cell colored status days.
  *   Green  → present
  *   Red    → absent
  *   Amber  → half day / late
@@ -17,15 +17,57 @@ import { colors }     from '../../theme/colors.js';
 import { typography } from '../../theme/typography.js';
 import { spacing }    from '../../theme/spacing.js';
 
-const DOT_COLORS = {
-  present:        colors.success,
-  absent:         colors.danger,
-  half_day:       colors.warning,
-  half_day_early: colors.warning,
-  late:           colors.warning,
-  on_leave:       colors.info,
-  holiday:        colors.accent,
-  weekend:        colors.border,
+const STATUS_STYLES = {
+  present: {
+    bg: colors.successLight,
+    border: colors.success,
+    text: colors.success,
+  },
+  absent: {
+    bg: colors.dangerLight,
+    border: colors.danger,
+    text: colors.danger,
+  },
+  half_day: {
+    bg: colors.warningLight,
+    border: colors.warning,
+    text: colors.warning,
+  },
+  half_day_early: {
+    bg: colors.warningLight,
+    border: colors.warning,
+    text: colors.warning,
+  },
+  late: {
+    bg: colors.warningLight,
+    border: colors.warning,
+    text: colors.warning,
+  },
+  on_leave: {
+    bg: colors.infoLight,
+    border: colors.info,
+    text: colors.info,
+  },
+  holiday: {
+    bg: colors.accentLight,
+    border: colors.accent,
+    text: colors.accent,
+  },
+  weekend: {
+    bg: colors.bgSubtle,
+    border: colors.border,
+    text: colors.textMuted,
+  },
+  regularisation_pending: {
+    bg: colors.warningLight,
+    border: colors.warning,
+    text: colors.warning,
+  },
+  incomplete: {
+    bg: colors.dangerLight,
+    border: colors.danger,
+    text: colors.danger,
+  },
 };
 
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -69,27 +111,36 @@ const AttendanceCalendar = ({ month, attendanceMap = {}, onDayPress }) => {
             : record?.status || (dayjs(dateStr).isAfter(today) ? null : 'weekend');
           const isToday  = dateStr === today;
           const isLate   = typeof record === 'object' && Boolean(record?.isLate);
-          const dotColor = isLate
-            ? DOT_COLORS.late
-            : (status ? DOT_COLORS[status] : null);
+          const statusStyle = isLate
+            ? STATUS_STYLES.late
+            : (status ? STATUS_STYLES[status] : null);
 
           return (
             <TouchableOpacity
               key={dateStr}
-              style={[styles.cell, isToday && styles.cellToday]}
+              style={styles.cell}
               onPress={() => onDayPress && record && onDayPress(dateStr)}
               activeOpacity={record ? 0.7 : 1}
             >
-              <Text style={[
-                styles.dayNum,
-                isToday && styles.dayNumToday,
-                !record && styles.dayNumMuted,
-              ]}>
-                {day}
-              </Text>
-              {dotColor && (
-                <View style={[styles.dot, { backgroundColor: dotColor }]} />
-              )}
+              <View
+                style={[
+                  styles.dayFill,
+                  statusStyle && {
+                    backgroundColor: statusStyle.bg,
+                    borderColor: statusStyle.border,
+                  },
+                  isToday && styles.cellToday,
+                ]}
+              >
+                <Text style={[
+                  styles.dayNum,
+                  statusStyle && { color: statusStyle.text },
+                  !record && styles.dayNumMuted,
+                  isToday && styles.dayNumToday,
+                ]}>
+                  {day}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -123,13 +174,19 @@ const styles = StyleSheet.create({
   cell: {
     width:          `${100 / 7}%`,
     aspectRatio:    1,
+    padding:         2,
+  },
+  dayFill: {
+    flex:           1,
     alignItems:     'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xs,
+    borderRadius:    8,
+    borderWidth:     1,
+    borderColor:     colors.transparent,
   },
   cellToday: {
-    backgroundColor: colors.accentLight,
-    borderRadius:    8,
+    borderColor: colors.accent,
+    borderWidth: 2,
   },
   dayNum: {
     fontFamily: typography.fontMedium,
@@ -141,12 +198,6 @@ const styles = StyleSheet.create({
   },
   dayNumMuted: {
     color: colors.textMuted,
-  },
-  dot: {
-    width:        5,
-    height:       5,
-    borderRadius: 3,
-    marginTop:    2,
   },
 });
 

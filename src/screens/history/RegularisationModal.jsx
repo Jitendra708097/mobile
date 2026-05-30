@@ -294,10 +294,9 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
           {error && <ErrorMessage message={error} />}
 
           <AppButton
-            label="Submit Regularisation"
+            label={success ? 'Submitted' : isLoading ? 'Submitting...' : 'Submit Regularisation'}
             onPress={handleSubmit}
-            loading={isLoading}
-            disabled={isPreparingPhoto || success}
+            disabled={isPreparingPhoto || isLoading || success}
             fullWidth
             style={styles.submitBtn}
           />

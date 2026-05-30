@@ -45,6 +45,31 @@ const formatMeters = (value) => {
   return parsed >= 1000 ? `${(parsed / 1000).toFixed(1)} km` : `${Math.round(parsed)} m`;
 };
 
+function buildOfflineSyncNotice(results = []) {
+  const synced = results.filter((item) => item.status === 'synced' || item.status === 'duplicate').length;
+  const rejected = results.filter((item) => item.status === 'rejected' || item.retryable === false).length;
+  const conflicts = results.filter((item) => item.status === 'conflict').length;
+  const retrying = results.length - synced - rejected - conflicts;
+  const firstProblem = results.find((item) => item.status !== 'synced' && item.status !== 'duplicate');
+
+  if (rejected > 0) {
+    const reason = firstProblem?.message ? `: ${firstProblem.message}` : '';
+    return { type: 'warning', text: `${synced} synced, ${rejected} rejected${reason}` };
+  }
+
+  if (conflicts > 0) {
+    const reason = firstProblem?.message ? `: ${firstProblem.message}` : '';
+    return { type: 'warning', text: `${synced} synced, ${conflicts} conflict${conflicts === 1 ? '' : 's'}${reason}` };
+  }
+
+  if (retrying > 0) {
+    const reason = firstProblem?.message ? `: ${firstProblem.message}` : '';
+    return { type: 'warning', text: `${synced} synced, ${retrying} kept for retry${reason}` };
+  }
+
+  return { type: 'success', text: `${synced} offline record${synced === 1 ? '' : 's'} synced.` };
+}
+
 const HomeScreen = ({ navigation }) => {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const hasRequestedHomePermissions = useRef(false);
@@ -257,12 +282,7 @@ const HomeScreen = ({ navigation }) => {
     await useAttendanceStore.getState().syncWithServer();
     await hydrateOfflineQueue();
     if (result?.results) {
-      const synced = result.results.filter((item) => item.status === 'synced' || item.status === 'duplicate').length;
-      const failed = result.results.length - synced;
-      setStatusNotice({
-        type: failed > 0 ? 'warning' : 'success',
-        text: failed > 0 ? `${synced} synced, ${failed} need review.` : `${synced} offline record${synced === 1 ? '' : 's'} synced.`,
-      });
+      setStatusNotice(buildOfflineSyncNotice(result.results));
     }
   }, [hydrateOfflineQueue, isOnline, syncOfflineQueue]);
 

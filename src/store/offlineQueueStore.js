@@ -28,7 +28,13 @@ const useOfflineQueueStore = create((set, get) => ({
       const result = await syncAttendanceRequest(queue);
       const completedIds = new Set(
         (result.results || [])
-          .filter((item) => item.status === 'synced' || item.status === 'duplicate' || item.status === 'conflict')
+          .filter((item) => (
+            item.status === 'synced' ||
+            item.status === 'duplicate' ||
+            item.status === 'conflict' ||
+            item.status === 'rejected' ||
+            item.retryable === false
+          ))
           .map((item) => queue[item.index]?.clientRecordId)
           .filter(Boolean)
       );
