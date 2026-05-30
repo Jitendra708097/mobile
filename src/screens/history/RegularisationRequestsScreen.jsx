@@ -65,6 +65,17 @@ const RegularisationCard = ({ item, highlighted }) => {
         </View>
       ) : null}
 
+      {item.managerNotes || item.finalNotes || item.approvalNotes ? (
+        <View style={styles.approvalBox}>
+          <Text style={styles.approvalTitle}>Approval note</Text>
+          {item.managerNotes ? <Text style={styles.approvalText}>Manager: {item.managerNotes}</Text> : null}
+          {item.finalNotes ? <Text style={styles.approvalText}>Admin: {item.finalNotes}</Text> : null}
+          {!item.managerNotes && !item.finalNotes && item.approvalNotes ? (
+            <Text style={styles.approvalText}>{item.approvalNotes}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>Submitted {formatTimeAgo(item.createdAt)}</Text>
         <Text style={styles.metaText}>{item.evidenceType || 'other'} proof</Text>
@@ -318,6 +329,24 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontRegular,
     fontSize: typography.sm,
     color: colors.danger,
+  },
+  approvalBox: {
+    borderRadius: 8,
+    backgroundColor: colors.successLight,
+    padding: spacing.sm,
+    marginTop: spacing.base,
+  },
+  approvalTitle: {
+    fontFamily: typography.fontSemiBold,
+    fontSize: typography.xs,
+    color: colors.success,
+    marginBottom: 2,
+  },
+  approvalText: {
+    fontFamily: typography.fontRegular,
+    fontSize: typography.sm,
+    color: colors.success,
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',

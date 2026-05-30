@@ -6,9 +6,10 @@
  *              Called by: HistoryScreen FAB, DayDetailSheet link.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Modal, TextInput, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import AppButton from '../../components/common/AppButton.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -16,7 +17,7 @@ import { submitRegularisation } from '../../services/regularisationService.js';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import { REGULARISATION_TYPES, REGULARISATION_TYPE_LABELS, EVIDENCE_TYPES, EVIDENCE_TYPE_LABELS, API_ROUTES } from '../../utils/constants.js';
+import { REGULARISATION_TYPES, REGULARISATION_TYPE_LABELS, EVIDENCE_TYPES, EVIDENCE_TYPE_LABELS } from '../../utils/constants.js';
 
 const TypePill = ({ label, selected, onPress }) => (
   <TouchableOpacity
@@ -68,29 +69,69 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
   const [reason,   setReason]   = useState('');
   const [evidence, setEvidence] = useState(EVIDENCE_TYPES.EMAIL);
   const [photo,    setPhoto]    = useState(null);
+  const [isPreparingPhoto, setPreparingPhoto] = useState(false);
   const [isLoading,setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState(false);
+  const submitInFlightRef = useRef(false);
 
   const reset = () => {
     setType(REGULARISATION_TYPES.MISSED_CHECKIN);
     setCheckIn(''); setCheckOut(''); setReason('');
     setEvidence(EVIDENCE_TYPES.EMAIL);
-    setPhoto(null); setError(''); setSuccess(false);
+    setPhoto(null); setError(''); setSuccess(false); setPreparingPhoto(false);
+    submitInFlightRef.current = false;
+    setLoading(false);
   };
 
-  const handleClose = () => { reset(); onClose(); };
+  const handleClose = () => {
+    if (isLoading || isPreparingPhoto) return;
+    reset();
+    onClose();
+  };
 
   const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality:    0.7,
-      base64:     true,
-    });
-    if (!result.canceled) setPhoto(result.assets[0]);
+    if (isLoading || isPreparingPhoto) return;
+
+    setPreparingPhoto(true);
+    setError('');
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality:    0.7,
+        base64:     false,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets[0];
+        const context = ImageManipulator.ImageManipulator.manipulate(asset.uri);
+        context.resize({ width: 1200 });
+
+        const renderedImage = await context.renderAsync();
+        const compressed = await renderedImage.saveAsync({
+          compress: 0.72,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
+        });
+
+        setPhoto({
+          uri: compressed.uri,
+          base64: compressed.base64,
+          mimeType: 'image/jpeg',
+        });
+        setEvidence(EVIDENCE_TYPES.PHOTO);
+      }
+    } catch {
+      setError('Unable to prepare the evidence photo. Please choose another image.');
+    } finally {
+      setPreparingPhoto(false);
+    }
   };
 
   const handleSubmit = async () => {
+    if (submitInFlightRef.current || isLoading || isPreparingPhoto) return;
+
     Keyboard.dismiss();
     if (!reason.trim()) { setError('Reason is required.'); return; }
     const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -122,6 +163,7 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
       return;
     }
 
+    submitInFlightRef.current = true;
     setLoading(true); setError('');
     try {
       await submitRegularisation({
@@ -130,7 +172,8 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
         requestedCheckOut: checkOut || undefined,
         reason:            reason.trim(),
         evidenceType:      evidence,
-        evidenceUrl:       photo?.uri || undefined,
+        evidenceBase64:    photo?.base64 || undefined,
+        evidenceMimeType:  photo?.mimeType || undefined,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -142,9 +185,9 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
         }
       }, 1800);
     } catch (e) {
-      setError(e.response?.data?.error?.message || 'Submission failed. Please try again.');
-    } finally {
+      submitInFlightRef.current = false;
       setLoading(false);
+      setError(e.response?.data?.error?.message || 'Submission failed. Please try again.');
     }
   };
 
@@ -161,8 +204,12 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Submit Regularisation</Text>
-          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Text style={styles.closeText}>Close</Text>
+          <TouchableOpacity
+            onPress={handleClose}
+            style={[styles.closeBtn, (isLoading || isPreparingPhoto) && styles.actionDisabled]}
+            disabled={isLoading || isPreparingPhoto}
+          >
+            <Text style={styles.closeText}>{isLoading ? 'Submitting' : 'Close'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -234,9 +281,13 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
           </View>
 
           {/* Optional photo */}
-          <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
+          <TouchableOpacity
+            style={[styles.photoBtn, (isLoading || isPreparingPhoto) && styles.actionDisabled]}
+            onPress={pickPhoto}
+            disabled={isLoading || isPreparingPhoto}
+          >
             <Text style={styles.photoBtnText}>
-              {photo ? 'Photo attached' : 'Attach evidence photo (optional)'}
+              {isPreparingPhoto ? 'Preparing photo...' : photo ? 'Photo attached' : 'Attach evidence photo (optional)'}
             </Text>
           </TouchableOpacity>
 
@@ -246,6 +297,7 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
             label="Submit Regularisation"
             onPress={handleSubmit}
             loading={isLoading}
+            disabled={isPreparingPhoto || success}
             fullWidth
             style={styles.submitBtn}
           />
@@ -253,6 +305,7 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
             label="Cancel"
             onPress={handleClose}
             variant="outline"
+            disabled={isLoading || isPreparingPhoto}
             fullWidth
           />
         </ScrollView>
@@ -401,6 +454,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMedium,
     fontSize:   typography.base,
     color:      colors.textSecondary,
+  },
+  actionDisabled: {
+    opacity: 0.55,
   },
 
   submitBtn: { marginBottom: spacing.sm },
