@@ -14,6 +14,7 @@ import HomeScreen from '../screens/home/HomeScreen.jsx';
 import HistoryScreen from '../screens/history/HistoryScreen.jsx';
 import LeaveScreen from '../screens/leave/LeaveScreen.jsx';
 import ProfileScreen from '../screens/profile/ProfileScreen.jsx';
+import FeedbackScreen from '../screens/profile/FeedbackScreen.jsx';
 import DeviceExceptionScreen from '../screens/DeviceExceptionScreen.jsx';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen.jsx';
 import LivenessChallenge from '../screens/home/LivenessChallenge.jsx';
@@ -274,6 +275,25 @@ const MainNavigator = () => {
           options={{
             headerShown: true,
             title: 'Device Exception',
+            headerStyle: {
+              backgroundColor: colors.bgSurface,
+              elevation: 3,
+            },
+            headerTitleStyle: {
+              fontFamily: typography.fontSemiBold,
+              fontSize: typography.md,
+              color: colors.textPrimary,
+            },
+            headerBackTitleVisible: false,
+            headerTintColor: colors.accent,
+          }}
+        />
+        <Stack.Screen
+          name="Feedback"
+          component={FeedbackScreen}
+          options={{
+            headerShown: true,
+            title: 'Feedback',
             headerStyle: {
               backgroundColor: colors.bgSurface,
               elevation: 3,

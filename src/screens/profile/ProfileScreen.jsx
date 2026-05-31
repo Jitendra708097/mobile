@@ -172,6 +172,16 @@ const ProfileScreen = ({ navigation }) => {
 
           <Divider />
 
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate('Feedback')}
+          >
+            <Text style={styles.actionLabel}>Send Feedback</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <Divider />
+
           <View style={styles.actionRow}>
             <Text style={styles.actionLabel}>App Version</Text>
             <Text style={styles.versionText}>v1.0.0</Text>
