@@ -2,7 +2,7 @@
  * @module SetPasswordScreen
  * @description First-login password setup screen.
  *              Shows real-time password requirement checklist.
- *              On success → FaceEnrollScreen.
+ *              On success -> permission setup, then face enrollment.
  *              Called by: AuthNavigator after first login detection.
  */
 
@@ -70,7 +70,7 @@ const SetPasswordScreen = ({ navigation }) => {
       return;
     }
     if (navigation?.replace) {
-      navigation.replace('FaceEnrollIntro');
+      navigation.replace('PermissionSetup');
     }
   };
 

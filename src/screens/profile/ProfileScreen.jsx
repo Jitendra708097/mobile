@@ -164,6 +164,16 @@ const ProfileScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.actionRow}
+            onPress={() => navigation.navigate('Permissions')}
+          >
+            <Text style={styles.actionLabel}>App Permissions</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <Divider />
+
+          <TouchableOpacity
+            style={styles.actionRow}
             onPress={() => navigation.navigate('DeviceException')}
           >
             <Text style={styles.actionLabel}>Request Device Exception</Text>

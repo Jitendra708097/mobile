@@ -47,6 +47,17 @@ export const requestNotificationPermission = async () => {
 };
 
 /**
+ * Check notification permission without showing the OS prompt.
+ * @returns {Promise<boolean>} true if already granted
+ */
+export const hasNotificationPermission = async () => {
+  if (!Device.isDevice) return false;
+
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+};
+
+/**
  * Get the Expo push token (wraps FCM token for Expo's delivery system).
  * Requires EAS_PROJECT_ID to be set in app.json — falls back gracefully if missing.
  * @returns {Promise<string|null>}
@@ -124,8 +135,11 @@ export const deregisterTokenWithBackend = async (fcmToken) => {
  * @param {string} deviceId
  * @returns {Promise<{ token: string|null, granted: boolean }>}
  */
-export const setupPushNotifications = async (deviceId) => {
-  const granted = await requestNotificationPermission();
+export const setupPushNotifications = async (deviceId, options = {}) => {
+  const { requestPermission = true } = options;
+  const granted = requestPermission
+    ? await requestNotificationPermission()
+    : await hasNotificationPermission();
   if (!granted) return { token: null, granted: false };
 
   // Android notification channel

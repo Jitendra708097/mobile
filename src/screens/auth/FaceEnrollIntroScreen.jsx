@@ -46,7 +46,7 @@ const FaceEnrollIntroScreen = ({ onStart }) => {
         </View>
 
         <View style={styles.copy}>
-          <Text style={styles.kicker}>Password updated</Text>
+          <Text style={styles.kicker}>Setup ready</Text>
           <Text style={styles.title}>Face Enrollment Required</Text>
           <Text style={styles.message}>
             To start using AttendEase, please complete face enrollment. This helps verify your identity when marking attendance.

@@ -2,7 +2,7 @@
  * @module LoginScreen
  * @description Employee login screen.
  *              Layout: Logo top 30%, subtitle, white card with form.
- *              On success: routes to SetPassword / FaceEnroll / Main.
+ *              On success: routes to SetPassword / PermissionSetup / Main.
  *              Keyboard avoiding with platform-specific behavior.
  *              Called by: AuthNavigator (initial screen).
  */
@@ -80,7 +80,7 @@ const LoginScreen = ({ navigation, route }) => {
       return;
     }
     if (!employee.faceEnrolled && navigation?.replace) {
-      navigation.replace('FaceEnrollIntro');
+      navigation.replace('PermissionSetup');
       return;
     }
   };

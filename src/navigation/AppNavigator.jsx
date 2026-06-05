@@ -56,10 +56,9 @@ const AppNavigator = () => {
         await hydrate();
         await hydrateQueue();
 
-        // Setup push notifications
+        // Resolve device ID for notification registration and device binding.
         const resolvedDeviceId = await getDeviceId();
         setDeviceId(resolvedDeviceId);
-        await setupPushNotifications(resolvedDeviceId);
       } finally {
         setIsBooting(false);
       }
@@ -99,13 +98,25 @@ const AppNavigator = () => {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated || !deviceId) {
+      return;
+    }
+
+    setupPushNotifications(deviceId, { requestPermission: false }).catch(() => {});
+  }, [isAuthenticated, deviceId]);
+
+  useEffect(() => {
     if (!deviceId) {
+      return undefined;
+    }
+
+    if (!isAuthenticated) {
       return undefined;
     }
 
     const sub = addPushTokenRefreshListener(deviceId);
     return () => sub.remove();
-  }, [deviceId]);
+  }, [deviceId, isAuthenticated]);
 
   // App state hook (background → foreground sync)
   useAppState();

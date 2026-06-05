@@ -14,6 +14,7 @@ import HomeScreen from '../screens/home/HomeScreen.jsx';
 import HistoryScreen from '../screens/history/HistoryScreen.jsx';
 import LeaveScreen from '../screens/leave/LeaveScreen.jsx';
 import ProfileScreen from '../screens/profile/ProfileScreen.jsx';
+import PermissionsScreen from '../screens/profile/PermissionsScreen.jsx';
 import FeedbackScreen from '../screens/profile/FeedbackScreen.jsx';
 import DeviceExceptionScreen from '../screens/DeviceExceptionScreen.jsx';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen.jsx';
@@ -22,6 +23,7 @@ import KioskModeScreen from '../screens/kiosk/KioskModeScreen.jsx';
 import RegularisationModal from '../screens/history/RegularisationModal.jsx';
 import RegularisationRequestsScreen from '../screens/history/RegularisationRequestsScreen.jsx';
 import SetPasswordScreen from '../screens/auth/SetPasswordScreen.jsx';
+import PermissionSetupScreen from '../screens/auth/PermissionSetupScreen.jsx';
 import FaceEnrollScreen from '../screens/auth/FaceEnrollScreen.jsx';
 import FaceEnrollIntroScreen from '../screens/auth/FaceEnrollIntroScreen.jsx';
 
@@ -183,10 +185,15 @@ const RegularisationScreenWrapper = ({ route, navigation }) => (
 
 const MainNavigator = () => {
   const user = useAuthStore((s) => s.user);
+  const [showPermissionSetup, setShowPermissionSetup] = useState(true);
   const [showFaceEnrollCamera, setShowFaceEnrollCamera] = useState(false);
 
   if (user?.isFirstLogin) return <SetPasswordScreen />;
   if (!user?.faceEnrolled) {
+    if (showPermissionSetup) {
+      return <PermissionSetupScreen onContinue={() => setShowPermissionSetup(false)} />;
+    }
+
     return showFaceEnrollCamera
       ? <FaceEnrollScreen onBack={() => setShowFaceEnrollCamera(false)} />
       : <FaceEnrollIntroScreen onStart={() => setShowFaceEnrollCamera(true)} />;
@@ -267,6 +274,25 @@ const MainNavigator = () => {
             headerShown: false,
             presentation: 'modal',
             gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="Permissions"
+          component={PermissionsScreen}
+          options={{
+            headerShown: true,
+            title: 'App Permissions',
+            headerStyle: {
+              backgroundColor: colors.bgSurface,
+              elevation: 3,
+            },
+            headerTitleStyle: {
+              fontFamily: typography.fontSemiBold,
+              fontSize: typography.md,
+              color: colors.textPrimary,
+            },
+            headerBackTitleVisible: false,
+            headerTintColor: colors.accent,
           }}
         />
         <Stack.Screen
