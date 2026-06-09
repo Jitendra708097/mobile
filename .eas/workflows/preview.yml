@@ -32,26 +32,4 @@ jobs:
       platform: android
       profile: preview
 
-  ios_get_build:
-    needs: [fingerprint]
-    type: get-build
-    params:
-      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
-      platform: ios
-      profile: preview
-
-  ios_update:
-    needs: [ios_get_build]
-    if: ${{ needs.ios_get_build.outputs.build_id }}
-    type: update
-    params:
-      channel: preview
-      platform: ios
-
-  ios_build:
-    needs: [ios_get_build]
-    if: ${{ !needs.ios_get_build.outputs.build_id }}
-    type: build
-    params:
-      platform: ios
-      profile: preview
+  

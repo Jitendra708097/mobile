@@ -1,5 +1,5 @@
 import { Linking } from 'react-native';
-import { getCameraPermissionsAsync, requestCameraPermissionsAsync } from 'expo-camera';
+import { Camera } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -82,11 +82,26 @@ const normalizePermissionResponse = (response) => {
   };
 };
 
-const failedStatus = () => ({
+const getErrorDetails = (error) => ({
+  code: error?.code,
+  name: error?.name,
+  message: error?.message || String(error),
+});
+
+const logPermissionError = (key, action, error) => {
+  const details = getErrorDetails(error);
+  console.error(`[permissionService] ${action} failed for ${key}`, details);
+  return details;
+};
+
+const failedStatus = (errorDetails) => ({
   granted: false,
   state: 'failed',
   statusLabel: 'Failed',
   canAskAgain: false,
+  errorCode: errorDetails?.code,
+  errorName: errorDetails?.name,
+  errorMessage: errorDetails?.message,
 });
 
 export const getPermissionItem = (key) =>
@@ -95,7 +110,7 @@ export const getPermissionItem = (key) =>
 export const getPermissionStatus = async (key) => {
   try {
     if (key === APP_PERMISSIONS.CAMERA) {
-      return normalizePermissionResponse(await getCameraPermissionsAsync());
+      return normalizePermissionResponse(await Camera.getCameraPermissionsAsync());
     }
 
     if (key === APP_PERMISSIONS.LOCATION) {
@@ -114,8 +129,8 @@ export const getPermissionStatus = async (key) => {
 
       return normalizePermissionResponse(await Notifications.getPermissionsAsync());
     }
-  } catch {
-    return failedStatus();
+  } catch (error) {
+    return failedStatus(logPermissionError(key, 'status check', error));
   }
 
   return failedStatus();
@@ -132,7 +147,7 @@ export const getAllPermissionStatuses = async () => {
 export const requestAppPermission = async (key) => {
   try {
     if (key === APP_PERMISSIONS.CAMERA) {
-      return normalizePermissionResponse(await requestCameraPermissionsAsync());
+      return normalizePermissionResponse(await Camera.requestCameraPermissionsAsync());
     }
 
     if (key === APP_PERMISSIONS.LOCATION) {
@@ -156,8 +171,8 @@ export const requestAppPermission = async (key) => {
       }
       return normalized;
     }
-  } catch {
-    return failedStatus();
+  } catch (error) {
+    return failedStatus(logPermissionError(key, 'permission request', error));
   }
 
   return failedStatus();
