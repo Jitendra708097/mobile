@@ -135,7 +135,6 @@ const AppNavigator = () => {
       <SafeAreaProvider>
         <NavigationContainer ref={navigationRef}>
           {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
-          {/* {isAuthenticated ? <AuthNavigator /> : <MainNavigator />} */}
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

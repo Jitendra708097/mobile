@@ -24,6 +24,7 @@ const FILTERS = [
   { key: 'approved', label: 'Approved' },
   { key: 'rejected', label: 'Rejected' },
 ];
+const PAGE_SIZE = 20;
 
 const formatDateOnly = (date) => {
   if (!date) return '--';
@@ -36,6 +37,22 @@ const TimePair = ({ label, value }) => (
     <Text style={styles.timeValue}>{value ? formatTime(value) : '--:--'}</Text>
   </View>
 );
+
+const mergeRequests = (current, incoming) => {
+  const seen = new Set();
+  const merged = [];
+
+  [...current, ...incoming].forEach((item) => {
+    if (!item?.id || seen.has(item.id)) {
+      return;
+    }
+
+    seen.add(item.id);
+    merged.push(item);
+  });
+
+  return merged;
+};
 
 const RegularisationCard = ({ item, highlighted }) => {
   const status = item.status || 'pending';
@@ -90,10 +107,19 @@ const RegularisationRequestsScreen = ({ route }) => {
   const [filter, setFilter] = useState('all');
   const [isLoading, setLoading] = useState(true);
   const [isRefreshing, setRefreshing] = useState(false);
+  const [isLoadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
 
-  const loadRequests = useCallback(async (refreshing = false) => {
-    if (refreshing) {
+  const loadRequests = useCallback(async ({ page = 1, refreshing = false, append = false } = {}) => {
+    if (append) {
+      setLoadingMore(true);
+    } else if (refreshing) {
       setRefreshing(true);
     } else {
       setLoading(true);
@@ -101,36 +127,70 @@ const RegularisationRequestsScreen = ({ route }) => {
     setError('');
 
     try {
-      const data = await fetchMyRegularisations({ limit: 100 });
-      setRequests(data?.regularisations || []);
+      const params = {
+        limit: PAGE_SIZE,
+        page,
+        status: filter === 'all' ? undefined : filter,
+      };
+      const data = await fetchMyRegularisations(params);
+      let nextRequests = data?.regularisations || [];
+
+      if (requestId && page === 1 && !nextRequests.some((item) => String(item.id) === String(requestId))) {
+        const pinnedData = await fetchMyRegularisations({ requestId });
+        const pinned = pinnedData?.regularisations?.[0];
+
+        if (pinned && (filter === 'all' || pinned.status === filter)) {
+          nextRequests = mergeRequests([pinned], nextRequests);
+        }
+      }
+
+      setRequests((current) => append ? mergeRequests(current, nextRequests) : nextRequests);
+      setPagination({
+        page: data?.pagination?.page || data?.page || page,
+        limit: data?.pagination?.limit || data?.limit || PAGE_SIZE,
+        total: data?.pagination?.total || data?.total || nextRequests.length,
+        totalPages: data?.pagination?.totalPages || data?.totalPages || 1,
+      });
     } catch (err) {
       setError(err?.response?.data?.error?.message || 'Unable to load regularisation requests.');
-      setRequests([]);
+      if (!append) {
+        setRequests([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  }, []);
+  }, [filter, requestId]);
 
   useEffect(() => {
-    loadRequests(false);
+    loadRequests({ page: 1 });
   }, [loadRequests]);
 
   const filteredRequests = useMemo(() => {
-    const filtered = filter === 'all'
-      ? requests
-      : requests.filter((item) => item.status === filter);
-
     if (!requestId) {
-      return filtered;
+      return requests;
     }
 
-    return [...filtered].sort((a, b) => {
+    return [...requests].sort((a, b) => {
       if (String(a.id) === String(requestId)) return -1;
       if (String(b.id) === String(requestId)) return 1;
       return 0;
     });
-  }, [filter, requestId, requests]);
+  }, [requestId, requests]);
+
+  const handleLoadMore = useCallback(() => {
+    if (
+      isLoading ||
+      isRefreshing ||
+      isLoadingMore ||
+      pagination.page >= pagination.totalPages
+    ) {
+      return;
+    }
+
+    loadRequests({ page: pagination.page + 1, append: true });
+  }, [isLoading, isLoadingMore, isRefreshing, loadRequests, pagination.page, pagination.totalPages]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
@@ -170,9 +230,18 @@ const RegularisationRequestsScreen = ({ route }) => {
               highlighted={String(item.id) === String(requestId)}
             />
           )}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => loadRequests(true)} />}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => loadRequests({ page: 1, refreshing: true })} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.35}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator color={colors.accent} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <EmptyState
               icon="clipboard-outline"
@@ -242,6 +311,11 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.base,
     paddingBottom: spacing['4xl'],
+  },
+  footerLoader: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.base,
   },
   card: {
     backgroundColor: colors.bgSurface,

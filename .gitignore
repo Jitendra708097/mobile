@@ -4,3 +4,4 @@ build/
 .env
 .expo/
 .env.production
+.vscode/

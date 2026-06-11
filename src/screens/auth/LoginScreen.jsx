@@ -112,6 +112,7 @@ const LoginScreen = ({ navigation, route }) => {
 
             {storeErr && <ErrorMessage message={storeErr} />}
 
+            {/* Email  */}
             <Text style={styles.label}>Employee Email</Text>
             <TextInput
               value={email}
@@ -127,6 +128,7 @@ const LoginScreen = ({ navigation, route }) => {
             />
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
+             {/* Password  */}
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordRow}>
               <TextInput
@@ -154,6 +156,7 @@ const LoginScreen = ({ navigation, route }) => {
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
+            {/* Sign in button  */}
             <AppButton
               label="Sign In"
               onPress={handleLogin}
