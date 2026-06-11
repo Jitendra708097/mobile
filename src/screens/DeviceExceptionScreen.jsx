@@ -63,6 +63,22 @@ export default function DeviceExceptionScreen() {
     }
   }, [deviceId, exceptions, selectedException, setSelectedDeviceException]);
 
+  useEffect(() => {
+    if (!selectedException) {
+      return;
+    }
+
+    const now = Date.now();
+    const isStillUsable =
+      selectedException.status === 'approved' &&
+      selectedException.tempDeviceId === deviceId &&
+      (!selectedException.expiresAt || new Date(selectedException.expiresAt).getTime() > now);
+
+    if (!isStillUsable) {
+      setSelectedDeviceException(null);
+    }
+  }, [deviceId, selectedException, setSelectedDeviceException]);
+
   const handleSubmitRequest = async () => {
     const trimmedReason = reason.trim();
 
@@ -142,12 +158,14 @@ export default function DeviceExceptionScreen() {
           ) : null}
           {exceptions.map((item) => {
             const isSelected = selectedException?.id === item.id;
-            const isApproved = item.status === 'approved';
+            const isExpired = item.expiresAt && new Date(item.expiresAt).getTime() <= Date.now();
+            const isUsable = item.status === 'approved' && !isExpired;
+            const statusLabel = isExpired && item.status === 'approved' ? 'EXPIRED' : item.status.toUpperCase();
 
             return (
               <View key={item.id} style={styles.exceptionRow}>
                 <View style={styles.exceptionMeta}>
-                  <Text style={styles.exceptionStatus}>{item.status.toUpperCase()}</Text>
+                  <Text style={styles.exceptionStatus}>{statusLabel}</Text>
                   <Text style={styles.exceptionReason}>{item.reason || 'No reason added'}</Text>
                   {item.expiresAt ? (
                     <Text style={styles.exceptionExpiry}>
@@ -155,7 +173,7 @@ export default function DeviceExceptionScreen() {
                     </Text>
                   ) : null}
                 </View>
-                {isApproved ? (
+                {isUsable ? (
                   <TouchableOpacity
                     onPress={() => setSelectedDeviceException(isSelected ? null : item)}
                     style={[styles.useButton, isSelected && styles.useButtonSelected]}
