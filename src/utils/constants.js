@@ -183,6 +183,7 @@ export const API_ROUTES = {
   CHECKOUT_UNDO:      '/attendance/undo-checkout',
   ATTENDANCE_STATUS:  '/attendance/today',
   ATTENDANCE_HISTORY: '/attendance/history',
+  ATTENDANCE_DAY_DETAIL: '/attendance/history/:date',
   LEAVE_BALANCE:      '/leave/balance',
   LEAVE_TYPES:        '/leave/types',
   LEAVE_PREVIEW:      '/leave/preview',

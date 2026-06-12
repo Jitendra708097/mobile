@@ -39,3 +39,14 @@ export async function getBranchGeofence() {
   const response = await api.get('/branches/current/geofence');
   return response.data.data;
 }
+
+export async function fetchAttendanceHistory(payload) {
+  const response = await api.get(API_ROUTES.ATTENDANCE_HISTORY,payload);
+  return response.data.data;
+}
+
+export async function fetchAttendanceDayDetail(date) {
+  const route = API_ROUTES.ATTENDANCE_DAY_DETAIL.replace(':date', encodeURIComponent(date));
+  const response = await api.get(route);
+  return response.data.data;
+}

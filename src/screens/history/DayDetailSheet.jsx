@@ -10,7 +10,6 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 
-import api           from '../../api/axiosInstance.js';
 import SessionRow    from '../../components/history/SessionRow.jsx';
 import StatusBadge   from '../../components/common/StatusBadge.jsx';
 import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
@@ -18,6 +17,7 @@ import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { formatDayDate, formatDuration } from '../../utils/formatters.js';
+import { fetchAttendanceDayDetail } from '../../services/attendanceService.js';
 
 /**
  * @param {object}  props
@@ -43,10 +43,11 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
   const fetchDetail = async () => {
     if (!record?.date) return;
     setLoading(true);
+    setDetail(null);
     setError('');
     try {
-      const res = await api.get(`/attendance/${record.date}`);
-      setDetail(res.data.data);
+      const data = await fetchAttendanceDayDetail(record.date);
+      setDetail(data);
     } catch {
       setDetail(null);
       setError('Could not load full session detail.');

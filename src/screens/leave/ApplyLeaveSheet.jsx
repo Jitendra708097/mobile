@@ -55,9 +55,7 @@ const ApplyLeaveSheet = ({ sheetRef, balances = {}, onSuccess, onClose }) => {
   const [isLoading, setLoading]  = useState(false);
   const [error,     setError]    = useState('');
 
-  const workingDays = fromDate && toDate
-    ? (isHalfDay ? 0.5 : countWorkingDays(fromDate, toDate))
-    : 0;
+  const workingDays = fromDate && toDate ? (isHalfDay ? 0.5 : countWorkingDays(fromDate, toDate)) : 0;
 
   const selectedBalance = balances[leaveType];
   const selectedType = leaveTypeOptions.find((item) => item.type === leaveType);

@@ -9,10 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, BackHandler,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +26,7 @@ import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
 import { formatMonthYear } from '../../utils/formatters.js';
+import { fetchAttendanceHistory } from '../../services/attendanceService.js';
 
 const HistoryScreen = ({ navigation }) => {
   const [month,       setMonth]       = useState(dayjs());
@@ -68,10 +66,11 @@ const HistoryScreen = ({ navigation }) => {
     }
     setError('');
     try {
-      const res = await api.get('/attendance/history', {
-        params: { month: month.format('YYYY-MM'), limit: 31 },
-      });
-      const data = res.data.data;
+      const data = await fetchAttendanceHistory({ params: { month: month.format("YYYY-MM"), limit: 31 } });
+      // const res = await api.get('/attendance/history', {
+      //   params: { month: month.format('YYYY-MM'), limit: 31 },
+      // });
+      // const data = res.data.data;
       setRecords(data.records || []);
       setMap(data.attendanceMap || {});
       setSummary(data.summary   || { present: 0, absent: 0, late: 0, onLeave: 0 });
@@ -95,7 +94,11 @@ const HistoryScreen = ({ navigation }) => {
 
   const handleDayPress = (dateStr) => {
     const record = records.find((r) => r.date === dateStr);
-    if (record) { setSelectedDay(record); setShowDetail(true); }
+    if (record) 
+    {
+       setSelectedDay(record); 
+       setShowDetail(true);
+    }
   };
 
   useFocusEffect(

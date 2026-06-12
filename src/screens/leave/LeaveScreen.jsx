@@ -9,10 +9,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import {
-  View, Text, ScrollView, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Keyboard,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton  from '../../components/common/AppButton.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
@@ -22,10 +19,7 @@ import AppRefreshControl from '../../components/common/AppRefreshControl.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
-import {
-  LEAVE_TYPES,
-  LEAVE_TYPE_LABELS,
-} from '../../utils/constants.js';
+import { LEAVE_TYPES, LEAVE_TYPE_LABELS } from '../../utils/constants.js';
 import { formatDateRange, countWorkingDays } from '../../utils/formatters.js';
 import { applyLeave, cancelLeave, getLeaveBalance, getLeaveHistory, getLeaveTypes } from '../../services/leaveService.js';
 
@@ -165,8 +159,16 @@ const LeaveScreen = () => {
 
   const handleApply = async () => {
     Keyboard.dismiss();
-    if (!fromDate || !toDate) { setError('Please select dates.'); return; }
-    if (!reason.trim())       { setError('Reason is required.'); return; }
+    if (!fromDate || !toDate)
+    { 
+       setError('Please select dates.');
+       return; 
+    }
+    if (!reason.trim())       
+    { 
+      setError('Reason is required.'); 
+      return; 
+    }
     setError(''); setSubmitting(true);
     try {
       await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay, halfDayPeriod: isHalfDay ? halfDayPeriod : null });

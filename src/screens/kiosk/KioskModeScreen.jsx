@@ -38,10 +38,7 @@ export default function KioskModeScreen({ navigation }) {
   const submitRef = useRef(false);
   const autoResetRef = useRef(null);
   const verifiedPremiseLocationRef = useRef(null);
-  const { isComplete: challengeTimedOut } = useCountdown(
-    challengeEndsAt,
-    SESSION.CHALLENGE_TIMEOUT_MS / 1000
-  );
+  const { isComplete: challengeTimedOut } = useCountdown( challengeEndsAt, SESSION.CHALLENGE_TIMEOUT_MS / 1000 );
 
   useEffect(() => {
     if (!permission) {
@@ -297,9 +294,7 @@ export default function KioskModeScreen({ navigation }) {
       <View style={styles.footer}>
         {lastResult ? (
           <View style={styles.resultBox}>
-            {lastResult.imageUri ? (
-              <Image source={{ uri: lastResult.imageUri }} style={styles.resultImage} />
-            ) : null}
+            {lastResult.imageUri ? ( <Image source={{ uri: lastResult.imageUri }} style={styles.resultImage} /> ) : null}
             <Text style={styles.resultStatus}>Successful</Text>
             <Text style={styles.resultTitle}>{lastResult.name}</Text>
             <Text style={styles.resultText}>

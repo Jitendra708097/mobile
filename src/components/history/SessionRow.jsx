@@ -20,16 +20,7 @@ import { formatTime, formatDuration } from '../../utils/formatters.js';
  *     status, checkInLat, checkInLng, faceMethod }
  */
 const SessionRow = ({ session }) => {
-  const {
-    sessionNumber,
-    checkInTime,
-    checkOutTime,
-    workedMinutes,
-    status,
-    checkInLat,
-    checkInLng,
-    faceMethod,
-  } = session;
+  const { sessionNumber, checkInTime, checkOutTime, workedMinutes, status, checkInLat, checkInLng, faceMethod } = session;
 
   const isOpen = status === 'open';
 

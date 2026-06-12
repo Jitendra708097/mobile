@@ -21,15 +21,7 @@ import { formatTime, formatDuration, formatDayDate } from '../../utils/formatter
  * @param {function}props.onPress      - Opens detail sheet
  */
 const DayRow = ({ record, onPress }) => {
-  const {
-    date,
-    status,
-    isLate,
-    firstCheckIn,
-    lastCheckOut,
-    totalWorkedMins,
-    isAnomaly,
-  } = record;
+  const { date, status, isLate, firstCheckIn, lastCheckOut, totalWorkedMins, isAnomaly } = record;
 
   return (
     <TouchableOpacity
