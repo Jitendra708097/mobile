@@ -7,13 +7,15 @@
  *              Called by: MainNavigator (pushed via bell icon, not a tab).
  */
 
-import React, { useEffect } from 'react';
-import {  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl,} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import useNotificationStore from '../../store/notificationStore.js';
-import { EmptyState }       from '../../components/common/CommonComponents.jsx';
+import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
+import AppFooter from '../../components/common/AppFooter.jsx';
+import AppRefreshControl from '../../components/common/AppRefreshControl.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
@@ -37,6 +39,9 @@ const NotificationItem = ({ item, onPress }) => {
       style={[styles.item, !item.isRead && styles.itemUnread]}
       onPress={() => onPress(item)}
       activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
+      accessibilityState={{ selected: !item.isRead }}
     >
       {/* Unread indicator */}
       {!item.isRead && <View style={styles.unreadBar} />}
@@ -60,10 +65,12 @@ const NotificationItem = ({ item, onPress }) => {
 const NotificationsScreen = ({ navigation }) => {
   const notifications  = useNotificationStore((s) => s.notifications);
   const isLoading      = useNotificationStore((s) => s.isLoading);
+  const error          = useNotificationStore((s) => s.error);
   const hasMore        = useNotificationStore((s) => s.hasMore);
   const loadMore       = useNotificationStore((s) => s.loadNotifications);
   const markAsRead     = useNotificationStore((s) => s.markAsRead);
   const markAllAsRead  = useNotificationStore((s) => s.markAllAsRead);
+  const [isRefreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadMore(true);
@@ -83,16 +90,29 @@ const NotificationsScreen = ({ navigation }) => {
     if (!isLoading && hasMore) loadMore(false);
   };
 
-  const handleRefresh = () => loadMore(true);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadMore(true);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       {/* Mark all read link */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={markAllAsRead}>
+        <TouchableOpacity
+          onPress={markAllAsRead}
+          accessibilityRole="button"
+          accessibilityLabel="Mark all notifications as read"
+        >
           <Text style={styles.markAllText}>Mark all read</Text>
         </TouchableOpacity>
       </View>
+
+      {error ? <ErrorMessage message={error} style={styles.errorMessage} /> : null}
 
       <FlatList
         data={notifications}
@@ -103,7 +123,7 @@ const NotificationsScreen = ({ navigation }) => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
-          !isLoading && (
+          !isLoading && !error && (
             <EmptyState
               icon="N"
               title="No notifications yet"
@@ -111,14 +131,17 @@ const NotificationsScreen = ({ navigation }) => {
             />
           )
         }
-        ListFooterComponent={
-          isLoading && (
-            <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} />
-          )
-        }
+        ListFooterComponent={(
+          <View>
+            {isLoading && !isRefreshing ? (
+              <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} />
+            ) : null}
+            <AppFooter />
+          </View>
+        )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: spacing['2xl'] }}
-        refreshControl={<RefreshControl refreshing={isLoading && notifications.length > 0} onRefresh={handleRefresh} />}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       />
     </SafeAreaView>
   );
@@ -139,6 +162,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMedium,
     fontSize:   typography.sm,
     color:      colors.accent,
+  },
+  errorMessage: {
+    marginHorizontal: spacing.base,
   },
 
   item: {

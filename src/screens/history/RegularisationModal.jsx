@@ -23,6 +23,9 @@ const TypePill = ({ label, selected, onPress }) => (
   <TouchableOpacity
     onPress={onPress}
     style={[styles.pill, selected && styles.pillSelected]}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    accessibilityState={{ selected }}
   >
     <Text style={[styles.pillText, selected && styles.pillTextSelected]}>{label}</Text>
   </TouchableOpacity>
@@ -158,11 +161,6 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
       return;
     }
 
-    if (checkIn && checkOut && checkOut <= checkIn) {
-      setError('Check-out time must be after check-in time.');
-      return;
-    }
-
     submitInFlightRef.current = true;
     setLoading(true); setError('');
     try {
@@ -208,6 +206,9 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
             onPress={handleClose}
             style={[styles.closeBtn, (isLoading || isPreparingPhoto) && styles.actionDisabled]}
             disabled={isLoading || isPreparingPhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Close regularisation form"
+            accessibilityState={{ disabled: isLoading || isPreparingPhoto }}
           >
             <Text style={styles.closeText}>{isLoading ? 'Submitting' : 'Close'}</Text>
           </TouchableOpacity>
@@ -285,6 +286,9 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
             style={[styles.photoBtn, (isLoading || isPreparingPhoto) && styles.actionDisabled]}
             onPress={pickPhoto}
             disabled={isLoading || isPreparingPhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Attach evidence photo"
+            accessibilityState={{ disabled: isLoading || isPreparingPhoto }}
           >
             <Text style={styles.photoBtnText}>
               {isPreparingPhoto ? 'Preparing photo...' : photo ? 'Photo attached' : 'Attach evidence photo (optional)'}
@@ -296,6 +300,7 @@ const RegularisationModal = ({ visible, onClose, onSubmitted, date }) => {
           <AppButton
             label={success ? 'Submitted' : isLoading ? 'Submitting...' : 'Submit Regularisation'}
             onPress={handleSubmit}
+            loading={isLoading}
             disabled={isPreparingPhoto || isLoading || success}
             fullWidth
             style={styles.submitBtn}

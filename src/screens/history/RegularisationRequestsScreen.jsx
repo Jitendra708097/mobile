@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
+import AppFooter from '../../components/common/AppFooter.jsx';
+import AppRefreshControl from '../../components/common/AppRefreshControl.jsx';
 import { fetchMyRegularisations } from '../../services/regularisationService.js';
 import { formatDate, formatTime, formatTimeAgo } from '../../utils/formatters.js';
 import { colors } from '../../theme/colors.js';
@@ -152,8 +154,12 @@ const RegularisationRequestsScreen = ({ route }) => {
         totalPages: data?.pagination?.totalPages || data?.totalPages || 1,
       });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || 'Unable to load regularisation requests.');
-      if (!append) {
+      setError(
+        refreshing
+          ? 'Could not refresh regularisation requests.'
+          : (err?.response?.data?.error?.message || 'Unable to load regularisation requests.')
+      );
+      if (!append && !refreshing) {
         setRequests([]);
       }
     } finally {
@@ -206,6 +212,9 @@ const RegularisationRequestsScreen = ({ route }) => {
             style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
             onPress={() => setFilter(item.key)}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label} regularisation filter`}
+            accessibilityState={{ selected: filter === item.key }}
           >
             <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
               {item.label}
@@ -230,24 +239,29 @@ const RegularisationRequestsScreen = ({ route }) => {
               highlighted={String(item.id) === String(requestId)}
             />
           )}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => loadRequests({ page: 1, refreshing: true })} />}
+          refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={() => loadRequests({ page: 1, refreshing: true })} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.35}
           ListFooterComponent={
-            isLoadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator color={colors.accent} />
-              </View>
-            ) : null
+            <View>
+              {isLoadingMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator color={colors.accent} />
+                </View>
+              ) : null}
+              <AppFooter />
+            </View>
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="clipboard-outline"
-              title="No regularisation requests"
-              subtitle="Submitted corrections will appear here."
-            />
+            !error ? (
+              <EmptyState
+                icon="clipboard-outline"
+                title="No regularisation requests"
+                subtitle="Submitted corrections will appear here."
+              />
+            ) : null
           }
         />
       )}

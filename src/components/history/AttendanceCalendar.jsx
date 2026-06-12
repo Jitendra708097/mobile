@@ -49,9 +49,9 @@ const STATUS_STYLES = {
     text: colors.info,
   },
   holiday: {
-    bg: colors.accentLight,
-    border: colors.accent,
-    text: colors.accent,
+    bg: colors.bgSubtle,
+    border: colors.border,
+    text: colors.textMuted,
   },
   weekend: {
     bg: colors.bgSubtle,

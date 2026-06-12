@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { ActivityIndicator, Alert, View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,10 @@ import CheckOutButton       from '../../components/home/CheckOutButton.jsx';
 import CooldownTimer        from '../../components/home/CooldownTimer.jsx';
 import TodaySummaryCard     from '../../components/home/TodaySummaryCard.jsx';
 import GpsStatusBar, { GPS_STATUS } from '../../components/home/GpsStatusBar.jsx';
+import WorkContextGrid      from '../../components/home/WorkContextGrid.jsx';
 import { OfflineBanner }    from '../../components/common/CommonComponents.jsx';
+import AppFooter            from '../../components/common/AppFooter.jsx';
+import AppRefreshControl    from '../../components/common/AppRefreshControl.jsx';
 import ConfirmCheckoutSheet from './ConfirmCheckoutSheet.jsx';
 import UndoCheckoutBar      from './UndoCheckoutBar.jsx';
 
@@ -110,6 +113,8 @@ const HomeScreen = ({ navigation }) => {
   const [statusNotice, setStatusNotice] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOpeningKiosk, setIsOpeningKiosk] = useState(false);
+  const [kioskMessage, setKioskMessage] = useState('');
 
   // ── Sync on every focus ──────────────────────────────────────────────────
   useSyncOnFocus();
@@ -183,13 +188,10 @@ const HomeScreen = ({ navigation }) => {
         const distanceToBoundary = insidePremise ? 0 : distanceToPolygonMeters(point, polygon);
         const toleranceMeters = Math.min(Math.max(Number(accuracy || 0), 15), 50);
         const insideWithBuffer = insidePremise || distanceToBoundary <= toleranceMeters;
-        const accuracyLabel = formatMeters(accuracy);
         const distanceLabel = formatMeters(distanceToBoundary);
 
         if (!insideWithBuffer) {
-          const outsideMessage = resolvedBranchName
-            ? `Outside ${resolvedBranchName}${distanceLabel ? ` by about ${distanceLabel}` : ''}.${accuracyLabel ? ` GPS accuracy +/- ${accuracyLabel}.` : ''}`
-            : `Outside office premises${distanceLabel ? ` by about ${distanceLabel}` : ''}.${accuracyLabel ? ` GPS accuracy +/- ${accuracyLabel}.` : ''}`;
+          const outsideMessage = `Outside Office${distanceLabel ? ` by about ${distanceLabel}` : ''}`;
           setGpsMessage(outsideMessage);
           setGpsStatus(GPS_STATUS.OUTSIDE);
           setLocationQuality('blocked');
@@ -198,11 +200,7 @@ const HomeScreen = ({ navigation }) => {
         }
         else if (!insidePremise)
         {
-          setGpsMessage(
-            resolvedBranchName
-              ? `Near ${resolvedBranchName} boundary. GPS accuracy +/- ${accuracyLabel || 'unknown'}; check-in may be flagged.`
-              : `Near office boundary. GPS accuracy +/- ${accuracyLabel || 'unknown'}; check-in may be flagged.`
-          );
+          setGpsMessage(`Near office boundary${distanceLabel ? ` by about ${distanceLabel}` : ''}`);
           setGpsStatus(GPS_STATUS.WEAK);
           setLocationQuality('weak');
           setIsGeofenceBuffered(true);
@@ -210,11 +208,7 @@ const HomeScreen = ({ navigation }) => {
         }
         else if (accuracy > 50)
         {
-          setGpsMessage(
-            resolvedBranchName
-              ? `Inside ${resolvedBranchName}, but GPS accuracy is +/- ${accuracyLabel || 'unknown'}.`
-              : `Inside office premises, but GPS accuracy is +/- ${accuracyLabel || 'unknown'}.`
-          );
+          setGpsMessage('Inside Office');
           setGpsStatus(GPS_STATUS.WEAK);
           setLocationQuality('weak');
           setIsGeofenceBuffered(true);
@@ -222,7 +216,7 @@ const HomeScreen = ({ navigation }) => {
         }
         else
         {
-          setGpsMessage(resolvedBranchName ? `Inside ${resolvedBranchName}` : '');
+          setGpsMessage('Inside Office');
           setGpsStatus(GPS_STATUS.INSIDE);
           setLocationQuality('verified');
           setIsGeofenceBuffered(false);
@@ -232,15 +226,15 @@ const HomeScreen = ({ navigation }) => {
 
       if (accuracy > 100)
       {
-        setGpsMessage('Location accuracy is too low to verify office boundary.');
+        setGpsMessage('Could not verify office boundary. Retry location.');
         setGpsStatus(GPS_STATUS.OUTSIDE);
         setLocationQuality('blocked');
         setIsGeofenceBuffered(false);
-        return { status: GPS_STATUS.OUTSIDE, message: 'Location accuracy is too low to verify office boundary.' };
+        return { status: GPS_STATUS.OUTSIDE, message: 'Could not verify office boundary. Retry location.' };
       }
       else
       {
-        setGpsMessage('GPS accuracy is low. Office boundary is not available yet.');
+        setGpsMessage('Near office boundary');
         setGpsStatus(GPS_STATUS.WEAK);
         setLocationQuality('weak');
         setIsGeofenceBuffered(true);
@@ -345,19 +339,30 @@ const HomeScreen = ({ navigation }) => {
   }, [gpsStatus, isGeofenceBuffered, isGpsRefreshing, locationQuality, navigation, refreshGps]);
 
   const handleOpenKioskMode = useCallback(async () => {
+    if (isOpeningKiosk) {
+      return;
+    }
+
+    setKioskMessage('');
+
     if (!isOnline) {
-      Alert.alert('Kiosk unavailable', 'Kiosk mode requires internet connection.');
+      setKioskMessage('Kiosk requires internet connection.');
       return;
     }
 
-    const premiseStatus = await assessPremiseLocation();
-    if (!premiseStatus.verified || !premiseStatus.inside) {
-      Alert.alert('Kiosk unavailable', 'Kiosk mode can be opened only inside office premises.');
-      return;
-    }
+    setIsOpeningKiosk(true);
+    try {
+      const premiseStatus = await assessPremiseLocation();
+      if (!premiseStatus.verified || !premiseStatus.inside) {
+        setKioskMessage('Kiosk can be opened only inside office premises.');
+        return;
+      }
 
-    navigation.push('KioskMode');
-  }, [assessPremiseLocation, isOnline, navigation]);
+      navigation.push('KioskMode');
+    } finally {
+      setIsOpeningKiosk(false);
+    }
+  }, [assessPremiseLocation, isOpeningKiosk, isOnline, navigation]);
 
   const checkInCta = (() => {
     if (isGpsRefreshing || gpsStatus === GPS_STATUS.LOADING) {
@@ -381,7 +386,7 @@ const HomeScreen = ({ navigation }) => {
     if (gpsStatus === GPS_STATUS.WEAK) {
       return {
         label: 'Continue Check-In',
-        hint: 'GPS accuracy is low. This check-in may be flagged for review.',
+        hint: 'Location may be reviewed before approval.',
         disabled: false,
         loading: false,
       };
@@ -403,7 +408,7 @@ const HomeScreen = ({ navigation }) => {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
         {/* ── Header ── */}
         <View style={styles.header}>
@@ -437,14 +442,11 @@ const HomeScreen = ({ navigation }) => {
         )}
 
         {/* ── Shift Info Card ── */}
-        {shiftInfo && (
-          <View style={styles.shiftCard}>
-            <Text style={styles.shiftName} numberOfLines={1}>{shiftInfo.name}</Text>
-            <Text style={styles.shiftTime}>
-              {formatShiftRange(shiftInfo.startTime, shiftInfo.endTime)}
-            </Text>
-          </View>
-        )}
+        <WorkContextGrid
+          branchName={branchName || storedBranchName}
+          shiftName={shiftInfo?.name}
+          shiftTime={shiftInfo ? formatShiftRange(shiftInfo.startTime, shiftInfo.endTime) : ''}
+        />
 
         {/* ── THE BUTTON ── */}
         <View style={styles.buttonSection}>
@@ -507,21 +509,37 @@ const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
-        <TouchableOpacity style={styles.kioskCard} onPress={handleOpenKioskMode} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.kioskCard, kioskMessage && styles.kioskCardWarning]}
+          onPress={handleOpenKioskMode}
+          activeOpacity={0.85}
+          disabled={isOpeningKiosk}
+          accessibilityRole="button"
+          accessibilityLabel="Open kiosk mode"
+          accessibilityState={{ busy: isOpeningKiosk, disabled: isOpeningKiosk }}
+        >
           <View style={styles.kioskIconWrap}>
             <Ionicons name="people-outline" size={21} color={colors.accent} />
           </View>
           <View style={styles.kioskMeta}>
             <Text style={styles.kioskTitle}>Kiosk Mode</Text>
-            <Text style={styles.kioskSubtitle} numberOfLines={2}>Shared face attendance on this device while inside office.</Text>
+            <Text style={styles.kioskSubtitle} numberOfLines={2}>
+              {kioskMessage || (isOpeningKiosk ? 'Checking location...' : 'Shared face attendance on this device while inside office.')}
+            </Text>
           </View>
-          <View style={styles.kioskActionPill}>
-            <Text style={styles.kioskAction}>Open</Text>
-            <Ionicons name="chevron-forward" size={15} color={colors.accent} />
+          <View style={[styles.kioskActionPill, isOpeningKiosk && styles.kioskActionPillBusy]}>
+            {isOpeningKiosk ? (
+              <ActivityIndicator size="small" color={colors.accent} />
+            ) : (
+              <>
+                <Text style={styles.kioskAction}>Open</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.accent} />
+              </>
+            )}
           </View>
         </TouchableOpacity>
 
-        <View style={styles.bottomPad} />
+        <AppFooter />
       </ScrollView>
 
       {/* ── Checkout Confirmation Sheet ── */}
@@ -572,34 +590,6 @@ const styles = StyleSheet.create({
     marginTop:  spacing.xs,
   },
   // ── Shift Card ────────────────────────────────────────────────────────────
-  shiftCard: {
-    flexDirection:   'row',
-    justifyContent:  'space-between',
-    alignItems:      'center',
-    backgroundColor: colors.bgSurface,
-    marginHorizontal: spacing.base,
-    marginBottom:    spacing.base,
-    borderRadius:    12,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.base,
-    borderLeftWidth:  3,
-    borderLeftColor:  colors.accent,
-    gap:              spacing.sm,
-  },
-  shiftName: {
-    flex:       1,
-    minWidth:   0,
-    fontFamily: typography.fontSemiBold,
-    fontSize:   typography.sm,
-    color:      colors.textPrimary,
-  },
-  shiftTime: {
-    fontFamily: typography.fontMono,
-    fontSize:   typography.sm,
-    color:      colors.textSecondary,
-    flexShrink: 0,
-  },
-
   // ── Button section ────────────────────────────────────────────────────────
   kioskCard: {
     flexDirection: 'row',
@@ -615,6 +605,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     minHeight: 76,
+  },
+  kioskCardWarning: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningLight,
   },
   kioskIconWrap: {
     width: 40,
@@ -650,6 +644,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
+  },
+  kioskActionPillBusy: {
+    backgroundColor: colors.bgSurface,
   },
   kioskAction: {
     fontFamily: typography.fontBold,
@@ -732,7 +729,6 @@ const styles = StyleSheet.create({
     textAlign:  'center',
   },
 
-  bottomPad: { height: spacing['2xl'] },
   notice: {
     marginHorizontal: spacing.base,
     marginBottom: spacing.base,

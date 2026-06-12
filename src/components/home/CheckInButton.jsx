@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { colors }     from '../../theme/colors.js';
@@ -45,12 +45,20 @@ const CheckInButton = ({ onPress, loading = false, disabled = false, label = 'Ma
         accessibilityState={{ disabled: isDisabled, busy: loading }}
       >
         <View style={styles.content}>
-          <Ionicons
-            name="checkmark-circle"
-            size={20}
-            color={isDisabled ? colors.textSecondary : colors.textInverse}
-            style={styles.icon}
-          />
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.textSecondary}
+              style={styles.icon}
+            />
+          ) : (
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color={isDisabled ? colors.textSecondary : colors.textInverse}
+              style={styles.icon}
+            />
+          )}
           <Text style={[styles.label, isDisabled && styles.disabledText]}>{label}</Text>
         </View>
       </TouchableOpacity>

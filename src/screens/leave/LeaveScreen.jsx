@@ -11,12 +11,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard,
+  StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton  from '../../components/common/AppButton.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
+import AppFooter from '../../components/common/AppFooter.jsx';
+import AppRefreshControl from '../../components/common/AppRefreshControl.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
@@ -104,8 +106,10 @@ const LeaveScreen = () => {
   const [balances,   setBalances]   = useState({});
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [history,    setHistory]    = useState([]);
-  const [isLoading,  setLoading]    = useState(false);
+  const [isSubmitting, setSubmitting] = useState(false);
+  const [isHistoryLoading, setHistoryLoading] = useState(false);
   const [error,      setError]      = useState('');
+  const [refreshError, setRefreshError] = useState('');
   const [success,    setSuccess]    = useState('');
   const [isRefreshing, setRefreshing] = useState(false);
   const [historyStatus, setHistoryStatus] = useState('all');
@@ -141,35 +145,44 @@ const LeaveScreen = () => {
     } catch { setBalances({}); }
   };
 
-  const fetchHistory = async () => {
-    setLoading(true);
+  const fetchHistory = async ({ refreshing = false } = {}) => {
+    if (!refreshing) {
+      setHistoryLoading(true);
+    }
     try {
       const data = await getLeaveHistory({ limit: 20 });
       setHistory(data.requests || []);
-    } catch { setHistory([]); }
-    finally { setLoading(false); }
+      setRefreshError('');
+    } catch {
+      setRefreshError(refreshing ? 'Could not refresh leave history.' : 'Could not load leave history.');
+    }
+    finally {
+      if (!refreshing) {
+        setHistoryLoading(false);
+      }
+    }
   };
 
   const handleApply = async () => {
     Keyboard.dismiss();
     if (!fromDate || !toDate) { setError('Please select dates.'); return; }
     if (!reason.trim())       { setError('Reason is required.'); return; }
-    setError(''); setLoading(true);
+    setError(''); setSubmitting(true);
     try {
       await applyLeave({ leaveType, fromDate, toDate, reason: reason.trim(), isHalfDay, halfDayPeriod: isHalfDay ? halfDayPeriod : null });
       setSuccess('Leave request submitted successfully.');
       setReason(''); setFromDate(''); setToDate('');
-      fetchBalance(); fetchHistory();
+      await Promise.all([fetchBalance(), fetchHistory()]);
       setTimeout(() => { setSuccess(''); setActiveTab(2); }, 1800);
     } catch (e) {
       setError(e.response?.data?.error?.message || 'Failed to submit leave request.');
-    } finally { setLoading(false); }
+    } finally { setSubmitting(false); }
   };
 
   const handleCancel = async (id) => {
     try {
       await cancelLeave(id);
-      fetchHistory();
+      await fetchHistory();
     } catch { /* non-critical */ }
   };
 
@@ -182,8 +195,9 @@ const LeaveScreen = () => {
 
   const refreshAll = async () => {
     setRefreshing(true);
+    setRefreshError('');
     try {
-      await Promise.all([fetchBalance(), fetchHistory()]);
+      await Promise.all([fetchBalance(), fetchTypes(), fetchHistory({ refreshing: true })]);
     } finally {
       setRefreshing(false);
     }
@@ -225,6 +239,9 @@ const LeaveScreen = () => {
             key={tab}
             style={[styles.tab, activeTab === i && styles.tabActive]}
             onPress={() => setActiveTab(i)}
+            accessibilityRole="button"
+            accessibilityLabel={`${tab} tab`}
+            accessibilityState={{ selected: activeTab === i }}
           >
             <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
               {tab}{tab === 'History' && pendingCount > 0 ? ` (${pendingCount})` : ''}
@@ -237,8 +254,9 @@ const LeaveScreen = () => {
       {activeTab === 0 && (
         <ScrollView
           contentContainerStyle={styles.scroll}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+          refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
         >
+          {refreshError ? <ErrorMessage message={refreshError} /> : null}
           <View style={styles.grid}>
             {dynamicTypeOptions.map(({ type }) => (
               <View key={type} style={styles.cardWrap}>
@@ -252,6 +270,7 @@ const LeaveScreen = () => {
             fullWidth
             style={{ marginTop: spacing.base }}
           />
+          <AppFooter />
         </ScrollView>
       )}
 
@@ -267,8 +286,9 @@ const LeaveScreen = () => {
             contentContainerStyle={styles.applyScroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+            refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
           >
+            {refreshError ? <ErrorMessage message={refreshError} /> : null}
             {success && (
               <View style={styles.successBox}>
                 <Text style={styles.successText}>{success}</Text>
@@ -288,6 +308,9 @@ const LeaveScreen = () => {
                       if (balances[k]?.halfDayAllowed === false) setIsHalfDay(false);
                     }}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={v}
+                    accessibilityState={{ selected: leaveType === k }}
                   >
                     <Text style={[styles.pillText, leaveType === k && styles.pillTextActive]}>{v}</Text>
                   </TouchableOpacity>
@@ -342,6 +365,9 @@ const LeaveScreen = () => {
                 style={[styles.halfDayRow, isHalfDay && styles.halfDayActive]}
                 onPress={() => selectedType?.halfDayAllowed === false ? null : setIsHalfDay((p) => !p)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Half day"
+                accessibilityState={{ selected: isHalfDay, disabled: selectedType?.halfDayAllowed === false }}
               >
                 <View>
                   <Text style={styles.halfDayText}>Half Day</Text>
@@ -357,6 +383,9 @@ const LeaveScreen = () => {
                       key={period}
                       style={[styles.filterChip, halfDayPeriod === period && styles.filterChipActive]}
                       onPress={() => setHalfDayPeriod(period)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${period} half day period`}
+                      accessibilityState={{ selected: halfDayPeriod === period }}
                     >
                       <Text style={[styles.filterText, halfDayPeriod === period && styles.filterTextActive]}>
                         {period === 'morning' ? 'Morning' : 'Afternoon'}
@@ -394,11 +423,12 @@ const LeaveScreen = () => {
               <AppButton
                 label="Submit Leave Request"
                 onPress={handleApply}
-                loading={isLoading}
+                loading={isSubmitting}
                 fullWidth
                 style={styles.submitButton}
               />
             </View>
+            <AppFooter />
           </ScrollView>
         </KeyboardAvoidingView>
       )}
@@ -409,9 +439,10 @@ const LeaveScreen = () => {
           data={filteredHistory}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: spacing.base, paddingBottom: spacing['3xl'] }}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
+          refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}
           ListHeaderComponent={
             <View style={styles.filterBlock}>
+              {refreshError ? <ErrorMessage message={refreshError} /> : null}
               <Text style={styles.filterLabel}>Status</Text>
               <View style={styles.filterRow}>
                 {['all', 'pending', 'approved', 'rejected', 'cancelled'].map((status) => (
@@ -419,6 +450,9 @@ const LeaveScreen = () => {
                     key={status}
                     style={[styles.filterChip, historyStatus === status && styles.filterChipActive]}
                     onPress={() => setHistoryStatus(status)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${status} leave status filter`}
+                    accessibilityState={{ selected: historyStatus === status }}
                   >
                     <Text style={[styles.filterText, historyStatus === status && styles.filterTextActive]}>
                       {status === 'all' ? 'All' : status}
@@ -433,6 +467,9 @@ const LeaveScreen = () => {
                     key={type}
                     style={[styles.filterChip, historyType === type && styles.filterChipActive]}
                     onPress={() => setHistoryType(type)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${type} leave type filter`}
+                    accessibilityState={{ selected: historyType === type }}
                   >
                     <Text style={[styles.filterText, historyType === type && styles.filterTextActive]}>
                       {type === 'all' ? 'All' : (dynamicTypeOptions.find((item) => item.type === type)?.label || LEAVE_TYPE_LABELS[type] || type)}
@@ -462,13 +499,16 @@ const LeaveScreen = () => {
             </View>
           )}
           ListEmptyComponent={
-            !isLoading && (
+            !isHistoryLoading && !refreshError && (
               <EmptyState icon="L" title="No leave requests" subtitle="Your leave history will appear here" />
             )
           }
-          ListFooterComponent={
-            isLoading && <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} />
-          }
+          ListFooterComponent={(
+            <View>
+              {isHistoryLoading ? <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} /> : null}
+              <AppFooter />
+            </View>
+          )}
         />
       )}
     </SafeAreaView>

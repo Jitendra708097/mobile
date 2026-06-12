@@ -22,8 +22,8 @@ export const colors = {
   warningLight: '#fef3c7',
   danger: '#dc2626',
   dangerLight: '#fee2e2',
-  info: '#2563eb',
-  infoLight: '#dbeafe',
+  info: '#0891b2',
+  infoLight: '#ecfeff',
 
   // Text
   textPrimary: '#0f172a',
@@ -36,7 +36,7 @@ export const colors = {
   borderFocus: '#3b82f6',
 
   // Attendance button states
-  checkInGreen: '#3b82f6',
+  checkInGreen: '#15803d',
   checkOutRed: '#dc2626',
   cooldownGrey: '#64748b',
   capGrey: '#94a3b8',

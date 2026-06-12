@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, BackHandler,
+  StyleSheet, ActivityIndicator, BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,7 +21,9 @@ import dayjs from 'dayjs';
 import api from '../../api/axiosInstance.js';
 import AttendanceCalendar from '../../components/history/AttendanceCalendar.jsx';
 import DayRow             from '../../components/history/DayRow.jsx';
-import { EmptyState }     from '../../components/common/CommonComponents.jsx';
+import { EmptyState, ErrorMessage } from '../../components/common/CommonComponents.jsx';
+import AppFooter from '../../components/common/AppFooter.jsx';
+import AppRefreshControl from '../../components/common/AppRefreshControl.jsx';
 import DayDetailSheet     from './DayDetailSheet.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
@@ -35,6 +37,7 @@ const HistoryScreen = ({ navigation }) => {
   const [summary,     setSummary]     = useState({ present: 0, absent: 0, late: 0, onLeave: 0 });
   const [isLoading,   setLoading]     = useState(false);
   const [isRefreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDetail,  setShowDetail]  = useState(false);
   const showDetailRef = useRef(false);
@@ -59,8 +62,11 @@ const HistoryScreen = ({ navigation }) => {
     fetchData();
   }, [month]);
 
-  const fetchHistory = async () => {
-    setLoading(true);
+  const fetchHistory = async ({ refreshing = false } = {}) => {
+    if (!refreshing) {
+      setLoading(true);
+    }
+    setError('');
     try {
       const res = await api.get('/attendance/history', {
         params: { month: month.format('YYYY-MM'), limit: 31 },
@@ -70,16 +76,18 @@ const HistoryScreen = ({ navigation }) => {
       setMap(data.attendanceMap || {});
       setSummary(data.summary   || { present: 0, absent: 0, late: 0, onLeave: 0 });
     } catch {
-      setRecords([]);
+      setError(refreshing ? 'Could not refresh attendance history.' : 'Could not load attendance history.');
     } finally {
-      setLoading(false);
+      if (!refreshing) {
+        setLoading(false);
+      }
     }
   };
 
   const refreshHistory = async () => {
     setRefreshing(true);
     try {
-      await fetchHistory();
+      await fetchHistory({ refreshing: true });
     } finally {
       setRefreshing(false);
     }
@@ -131,7 +139,12 @@ const HistoryScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       {/* Month picker */}
       <View style={styles.monthRow}>
-        <TouchableOpacity onPress={prevMonth} style={styles.arrow}>
+        <TouchableOpacity
+          onPress={prevMonth}
+          style={styles.arrow}
+          accessibilityRole="button"
+          accessibilityLabel="Previous month"
+        >
           <Ionicons name="chevron-back" size={26} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{formatMonthYear(month.toDate())}</Text>
@@ -139,12 +152,20 @@ const HistoryScreen = ({ navigation }) => {
           onPress={nextMonth}
           style={styles.arrow}
           disabled={!canGoNext}
+          accessibilityRole="button"
+          accessibilityLabel="Next month"
+          accessibilityState={{ disabled: !canGoNext }}
         >
           <Ionicons name="chevron-forward" size={26} color={canGoNext ? colors.accent : colors.border} />
         </TouchableOpacity>
       </View>
       {!month.isSame(dayjs(), 'month') && (
-        <TouchableOpacity style={styles.todayButton} onPress={() => setMonth(dayjs())}>
+        <TouchableOpacity
+          style={styles.todayButton}
+          onPress={() => setMonth(dayjs())}
+          accessibilityRole="button"
+          accessibilityLabel="Back to today"
+        >
           <Text style={styles.todayButtonText}>Back to Today</Text>
         </TouchableOpacity>
       )}
@@ -152,11 +173,14 @@ const HistoryScreen = ({ navigation }) => {
         style={styles.requestsButton}
         onPress={() => navigation.navigate('RegularisationRequests')}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Track regularisations"
       >
         <Ionicons name="clipboard-outline" size={17} color={colors.accent} />
         <Text style={styles.requestsButtonText}>Track Regularisations</Text>
         <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
       </TouchableOpacity>
+      {error ? <ErrorMessage message={error} style={styles.errorMessage} /> : null}
 
       <FlatList
         ListHeaderComponent={
@@ -192,7 +216,7 @@ const HistoryScreen = ({ navigation }) => {
           />
         )}
         ListEmptyComponent={
-          !isLoading && (
+          !isLoading && !error && (
             <EmptyState
               icon="R"
               title="No records this month"
@@ -200,12 +224,15 @@ const HistoryScreen = ({ navigation }) => {
             />
           )
         }
-        ListFooterComponent={
-          isLoading && <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} />
-        }
+        ListFooterComponent={(
+          <View>
+            {isLoading ? <ActivityIndicator color={colors.accent} style={{ margin: spacing.xl }} /> : null}
+            <AppFooter />
+          </View>
+        )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: spacing['4xl'] }}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshHistory} />}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={refreshHistory} />}
       />
 
       {/* FAB */}
@@ -214,6 +241,8 @@ const HistoryScreen = ({ navigation }) => {
         onPress={() => navigation.navigate('Regularisation', {
           date: selectedDay?.date || undefined,
         })}
+        accessibilityRole="button"
+        accessibilityLabel="Create regularisation request"
       >
         <Ionicons name="create-outline" size={22} color={colors.textInverse} />
       </TouchableOpacity>
@@ -278,6 +307,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSemiBold,
     fontSize: typography.sm,
     color: colors.textPrimary,
+  },
+  errorMessage: {
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.base,
   },
 
   strip: {

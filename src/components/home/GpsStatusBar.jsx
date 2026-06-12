@@ -47,19 +47,19 @@ const STATUS_CONFIG = {
   },
   inside: {
     icon:    'checkmark-circle-outline',
-    text:    'Location verified',
+    text:    'Inside Office',
     bg:      colors.successLight,
     textColor: colors.success,
   },
   weak: {
     icon:    'warning-outline',
-    text:    'Location verified with low accuracy',
+    text:    'Near office boundary',
     bg:      colors.warningLight,
     textColor: colors.warning,
   },
   outside: {
     icon:    'close-circle-outline',
-    text:    'Outside office premises',
+    text:    'Outside Office',
     bg:      colors.dangerLight,
     textColor: colors.danger,
   },
@@ -89,11 +89,7 @@ const GpsStatusBar = ({ status = GPS_STATUS.LOADING, branchName, message, checke
     }
   }, [status]);
 
-  const displayText = message || (
-    status === GPS_STATUS.INSIDE && branchName
-      ? `Inside ${branchName}`
-      : config.text
-  );
+  const displayText = message || config.text;
   const checkedLabel = checkedAt
     ? dayjs(checkedAt).isValid()
       ? `checked ${dayjs(checkedAt).fromNow()}`

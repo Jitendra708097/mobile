@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api           from '../../api/axiosInstance.js';
 import SessionRow    from '../../components/history/SessionRow.jsx';
 import StatusBadge   from '../../components/common/StatusBadge.jsx';
+import { ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import { colors }    from '../../theme/colors.js';
 import { typography }from '../../theme/typography.js';
 import { spacing }   from '../../theme/spacing.js';
@@ -28,6 +29,7 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
   const sheetRef  = useRef(null);
   const [detail,  setDetail]  = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (visible && record) {
@@ -41,11 +43,13 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
   const fetchDetail = async () => {
     if (!record?.date) return;
     setLoading(true);
+    setError('');
     try {
       const res = await api.get(`/attendance/${record.date}`);
       setDetail(res.data.data);
     } catch {
       setDetail(null);
+      setError('Could not load full session detail.');
     } finally {
       setLoading(false);
     }
@@ -98,11 +102,13 @@ const DayDetailSheet = ({ visible, record, onClose }) => {
 
         {loading && <ActivityIndicator color={colors.accent} style={{ margin: spacing.base }} />}
 
-        {!loading && d?.sessions?.length > 0 && d.sessions.map((s, i) => (
+        {!loading && error ? <ErrorMessage message={error} /> : null}
+
+        {!loading && !error && d?.sessions?.length > 0 && d.sessions.map((s, i) => (
           <SessionRow key={i} session={s} />
         ))}
 
-        {!loading && (!d?.sessions || d.sessions.length === 0) && (
+        {!loading && !error && (!d?.sessions || d.sessions.length === 0) && (
           <Text style={styles.noSessions}>No session data available.</Text>
         )}
       </BottomSheetScrollView>

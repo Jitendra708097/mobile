@@ -6,7 +6,7 @@
  *              Called by: MainNavigator (Tab 4 — Profile).
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import useAuthStore        from '../../store/authStore.js';
 import AppButton           from '../../components/common/AppButton.jsx';
+import AppFooter           from '../../components/common/AppFooter.jsx';
+import AppRefreshControl   from '../../components/common/AppRefreshControl.jsx';
 import { Avatar, Divider, ErrorMessage } from '../../components/common/CommonComponents.jsx';
 import ChangePasswordSheet from './ChangePasswordSheet.jsx';
 import DeviceInfoCard      from './DeviceInfoCard.jsx';
@@ -33,20 +35,35 @@ const ProfileScreen = ({ navigation }) => {
 
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
+  const [isRefreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
+
+  const loadNotificationPreference = useCallback(async ({ refreshing = false } = {}) => {
+    try {
+      const data = await fetchNotificationPreferences();
+      const preferences = data.preferences || {};
+      setNotifEnabled(preferences.enabled !== false && preferences.push !== false);
+      setRefreshError('');
+    } catch (error) {
+      if (refreshing) {
+        setRefreshError('Could not refresh profile settings.');
+      }
+      console.log('Failed to load notification preference:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadNotificationPreference = async () => {
-      try {
-        const data = await fetchNotificationPreferences();
-        const preferences = data.preferences || {};
-        setNotifEnabled(preferences.enabled !== false && preferences.push !== false);
-      } catch (error) {
-        console.log('Failed to load notification preference:', error);
-      }
-    };
-
     loadNotificationPreference();
-  }, []);
+  }, [loadNotificationPreference]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadNotificationPreference({ refreshing: true });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleNotificationToggle = async (enabled) => {
     setNotifEnabled(enabled);
@@ -96,12 +113,19 @@ const ProfileScreen = ({ navigation }) => {
 
   const joinedDate = user?.joinedAt ? formatDate(user.joinedAt) : 'Not available';
   const designation = user?.designationName || user?.designation || 'Employee';
+  const branchName =
+    user?.branchName ||
+    user?.branch?.name ||
+    user?.assignedBranchName ||
+    user?.officeName ||
+    user?.locationName;
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
         {/* Avatar + Name */}
         <View style={styles.avatarBlock}>
@@ -118,11 +142,14 @@ const ProfileScreen = ({ navigation }) => {
         {/* Info */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Personal Info</Text>
+          {refreshError ? <ErrorMessage message={refreshError} /> : null}
           <InfoRow label="Email"      value={user?.email} />
           <Divider />
           <InfoRow label="Phone"      value={user?.phone} />
           <Divider />
           <InfoRow label="Department" value={user?.department} />
+          <Divider />
+          <InfoRow label="Branch"     value={branchName} />
           <Divider />
           <InfoRow label="Shift"      value={user?.shiftName} />
           <Divider />
@@ -142,6 +169,8 @@ const ProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => changePassRef.current?.expand()}
+            accessibilityRole="button"
+            accessibilityLabel="Change password"
           >
             <Text style={styles.actionLabel}>Change Password</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -165,6 +194,8 @@ const ProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => navigation.navigate('Permissions')}
+            accessibilityRole="button"
+            accessibilityLabel="Open app permissions"
           >
             <Text style={styles.actionLabel}>App Permissions</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -175,6 +206,8 @@ const ProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => navigation.navigate('DeviceException')}
+            accessibilityRole="button"
+            accessibilityLabel="Request device exception"
           >
             <Text style={styles.actionLabel}>Request Device Exception</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -185,6 +218,8 @@ const ProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => navigation.navigate('Feedback')}
+            accessibilityRole="button"
+            accessibilityLabel="Send feedback"
           >
             <Text style={styles.actionLabel}>Send Feedback</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -203,10 +238,14 @@ const ProfileScreen = ({ navigation }) => {
             style={styles.actionRow}
             onPress={openLogoutSheet}
             disabled={isLoggingOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            accessibilityState={{ disabled: isLoggingOut }}
           >
             <Text style={[styles.actionLabel, styles.logoutLabel]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
+        <AppFooter />
       </ScrollView>
 
       {/* Change Password Sheet */}

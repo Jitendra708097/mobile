@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { getDeviceId } from '../services/deviceService.js';
 import { getMyDeviceExceptions, requestDeviceException } from '../services/deviceExceptionService.js';
 import useAttendanceStore from '../store/attendanceStore.js';
 import AppButton from '../components/common/AppButton.jsx';
+import AppFooter from '../components/common/AppFooter.jsx';
+import AppRefreshControl from '../components/common/AppRefreshControl.jsx';
+import { ErrorMessage } from '../components/common/CommonComponents.jsx';
 import { colors } from '../theme/colors.js';
 import { typography } from '../theme/typography.js';
 import { spacing } from '../theme/spacing.js';
@@ -115,7 +118,7 @@ export default function DeviceExceptionScreen() {
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => load(true)} />}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={() => load(true)} />}
       >
         <View style={styles.card}>
           <Text style={styles.heading}>Request Device Exception</Text>
@@ -152,8 +155,14 @@ export default function DeviceExceptionScreen() {
 
         <View style={styles.card}>
           <Text style={styles.heading}>Available Exceptions</Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {!isLoading && exceptions.length === 0 ? (
+          {error ? <ErrorMessage message={error} /> : null}
+          {isLoading ? (
+            <View style={styles.loadingBlock}>
+              <ActivityIndicator color={colors.accent} />
+              <Text style={styles.loadingText}>Loading device exceptions...</Text>
+            </View>
+          ) : null}
+          {!isLoading && !error && exceptions.length === 0 ? (
             <Text style={styles.empty}>No device exceptions found yet.</Text>
           ) : null}
           {exceptions.map((item) => {
@@ -177,6 +186,9 @@ export default function DeviceExceptionScreen() {
                   <TouchableOpacity
                     onPress={() => setSelectedDeviceException(isSelected ? null : item)}
                     style={[styles.useButton, isSelected && styles.useButtonSelected]}
+                    accessibilityRole="button"
+                    accessibilityLabel={isSelected ? 'Selected device exception' : 'Use this device exception for check-in'}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <Text style={[styles.useButtonText, isSelected && styles.useButtonTextSelected]}>
                       {isSelected ? 'Selected' : 'Use for Check-in'}
@@ -187,6 +199,7 @@ export default function DeviceExceptionScreen() {
             );
           })}
         </View>
+        <AppFooter />
       </ScrollView>
     </SafeAreaView>
   );
@@ -194,7 +207,7 @@ export default function DeviceExceptionScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgPrimary },
-  content: { padding: spacing.base, gap: spacing.base },
+  content: { padding: spacing.base, gap: spacing.base, paddingBottom: spacing['2xl'] },
   card: {
     backgroundColor: colors.bgSurface,
     borderRadius: 16,
@@ -247,11 +260,16 @@ const styles = StyleSheet.create({
     color: colors.success,
     marginTop: spacing.sm,
   },
-  error: {
+  loadingBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+  },
+  loadingText: {
     fontFamily: typography.fontRegular,
     fontSize: typography.sm,
-    color: colors.danger,
-    marginBottom: spacing.sm,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
   },
   empty: {
     fontFamily: typography.fontRegular,
